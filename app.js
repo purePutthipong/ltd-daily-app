@@ -43,9 +43,10 @@ const DAY_TH = ['อาทิตย์','จันทร์','อังคาร
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 
-let data         = {};
-let currentMood  = 0;
+let data          = {};
+let currentMood   = 0;
 let currentEnergy = 0;
+let currentSubject = 'Control';
 
 // ─── STORAGE ─────────────────────────────────────────────────────────────────
 
@@ -80,6 +81,20 @@ function parseDate(str) {
   // parse YYYY-MM-DD in local time (avoid UTC offset issues)
   const [y, m, d] = str.split('-').map(Number);
   return new Date(y, m-1, d);
+}
+
+function getWeekDates() {
+  const d = new Date();
+  const dow = d.getDay(); // 0=Sun
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const dd = new Date(monday);
+    dd.setDate(monday.getDate() + i);
+    dates.push(`${dd.getFullYear()}-${pad(dd.getMonth()+1)}-${pad(dd.getDate())}`);
+  }
+  return dates;
 }
 
 function formatDate(str) {
@@ -209,6 +224,30 @@ function renderHome() {
     nPreview.textContent = 'ยังไม่ได้บันทึก';
   }
 
+  // Study card
+  const studyLog = log.study || [];
+  const studyBadge   = document.getElementById('study-badge');
+  const studyPreview = document.getElementById('study-preview');
+  if (studyBadge && studyPreview) {
+    if (studyLog.length) {
+      const totalMins = studyLog.reduce((s, e) => s + e.mins, 0);
+      const h = Math.floor(totalMins / 60), m = totalMins % 60;
+      studyBadge.textContent = `✓ ${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm' : ''}`.trim();
+      studyBadge.className   = 'log-badge done';
+      const bySubj = {};
+      studyLog.forEach(e => { bySubj[e.subject] = (bySubj[e.subject] || 0) + e.mins; });
+      studyPreview.textContent = Object.entries(bySubj)
+        .map(([s, m]) => `${s} ${m < 60 ? m + 'm' : (m/60).toFixed(1) + 'h'}`).join('  ·  ');
+    } else {
+      studyBadge.textContent = '+ Log';
+      studyBadge.className   = 'log-badge';
+      studyPreview.textContent = 'ยังไม่ได้บันทึก';
+    }
+  }
+
+  // Weekly goals
+  renderWeeklyGoals();
+
   // Task quick card
   const tqc = document.getElementById('task-quick-card');
   if (tqc) {
@@ -290,6 +329,8 @@ function openOverlay(name) {
     openSettingsOverlay();
   } else if (name === 'pomodoro') {
     openPomodoro();
+  } else if (name === 'study') {
+    openStudyOverlay();
   } else {
     document.getElementById('sleep-time').value  = log.night.sleepTime || '';
     document.getElementById('reflection').value  = log.night.reflection || '';
@@ -633,6 +674,23 @@ const SLEEP_TIPS = [
     action: 'ลุกไปทำอะไรที่ผ่อนคลายในแสงหรี่ แล้วค่อยกลับมานอนเมื่อง่วง' },
 ];
 
+// ─── SLEEP DEBT ──────────────────────────────────────────────────────────────
+
+function calcSleepDebt() {
+  const TARGET = 8;
+  let debt = 0, logged = 0;
+  for (const date of getWeekDates()) {
+    const log = data[date];
+    if (!log?.morning?.wakeTime || !log?.night?.sleepTime) continue;
+    const [sh, sm] = log.night.sleepTime.split(':').map(Number);
+    const [wh, wm] = log.morning.wakeTime.split(':').map(Number);
+    const sleepMins = sh * 60 + sm, wakeMins = wh * 60 + wm;
+    const dur = wakeMins >= sleepMins ? (wakeMins - sleepMins) / 60 : (1440 - sleepMins + wakeMins) / 60;
+    if (dur > 2 && dur < 16) { debt += TARGET - dur; logged++; }
+  }
+  return logged > 0 ? { debt, logged } : null;
+}
+
 // ─── MOOD/ENERGY CHART ───────────────────────────────────────────────────────
 
 function renderMoodEnergyChart() {
@@ -706,6 +764,21 @@ function renderInsights() {
         </div>
         <div class="score-label">Sleep Score · ${scoreDesc}</div>
         <div class="score-bar-wrap"><div class="score-bar" style="width:${score}%;background:${scoreColor}"></div></div>
+      </div>`;
+  }
+
+  // Sleep debt
+  const debt = calcSleepDebt();
+  if (debt) {
+    const debtColor = debt.debt > 2 ? '#f85149' : debt.debt > 0.5 ? '#e3a008' : '#3fb950';
+    const sign = debt.debt > 0 ? '+' : '';
+    html += `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
+        <div>
+          <div class="card-title">💤 Sleep Debt สัปดาห์นี้</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">${debt.logged} คืนที่บันทึก · เป้า 8h/คืน</div>
+        </div>
+        <div style="font-size:30px;font-weight:700;color:${debtColor}">${sign}${debt.debt.toFixed(1)}h</div>
       </div>`;
   }
 
@@ -1594,6 +1667,137 @@ function _downloadLog(date, content) {
   a.download = `${date}.md`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─── WEEKLY GOALS ────────────────────────────────────────────────────────────
+
+function renderWeeklyGoals() {
+  const el = document.getElementById('weekly-goals');
+  if (!el) return;
+  const weekDates = getWeekDates();
+  const vs = loadVocabState();
+  const vocabSessions = new Set(vs._sessions || []);
+
+  const logCount   = weekDates.filter(d => data[d] && (data[d].morning?.mood > 0 || data[d].night?.energy > 0)).length;
+  const waterCount = weekDates.filter(d => (data[d]?.water || 0) >= 6).length;
+  const exerCount  = weekDates.filter(d => !!data[d]?.exercise).length;
+  const vocabCount = weekDates.filter(d => vocabSessions.has(d)).length;
+
+  const goals = [
+    { icon: '📝', label: 'Log',      val: logCount,   target: 7 },
+    { icon: '💧', label: 'น้ำ',      val: waterCount, target: 5 },
+    { icon: '🏃', label: 'ออกกำลัง', val: exerCount,  target: 4 },
+    { icon: '📚', label: 'EN',       val: vocabCount, target: 5 },
+  ];
+
+  const rows = goals.map(g => {
+    const pct   = Math.min(100, Math.round((g.val / g.target) * 100));
+    const color = pct >= 100 ? '#3fb950' : pct >= 60 ? '#d29922' : '#8b949e';
+    return `
+      <div class="goal-row">
+        <span class="goal-icon">${g.icon}</span>
+        <div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%;background:${color}"></div></div>
+        <span class="goal-val" style="color:${color}">${g.val}<span class="goal-target">/${g.target}</span></span>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="card weekly-goals-card"><div class="card-title" style="margin-bottom:10px">🗓 สัปดาห์นี้</div>${rows}</div>`;
+}
+
+// ─── STUDY ───────────────────────────────────────────────────────────────────
+
+function selectSubject(s) {
+  currentSubject = s;
+  document.querySelectorAll('.subject-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.s === s));
+}
+
+function setStudyDuration(mins) {
+  document.getElementById('study-mins').value = mins;
+  document.querySelectorAll('.dur-preset').forEach(btn =>
+    btn.classList.toggle('active', btn.textContent.trim() === String(mins)));
+}
+
+function openStudyOverlay() {
+  currentSubject = 'Control';
+  document.querySelectorAll('.subject-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.s === 'Control'));
+  document.querySelectorAll('.dur-preset').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('study-mins').value = '';
+  renderStudySessions();
+  renderStudyWeekly();
+  document.getElementById('overlay-study').classList.add('open');
+}
+
+function addStudySession() {
+  const mins = parseInt(document.getElementById('study-mins').value);
+  if (!mins || mins < 1) { showToast('ใส่เวลาก่อนนะ'); return; }
+  const log = getLog(getToday());
+  if (!log.study) log.study = [];
+  log.study.push({ subject: currentSubject, mins });
+  save();
+  renderHome();
+  document.getElementById('study-mins').value = '';
+  document.querySelectorAll('.dur-preset').forEach(btn => btn.classList.remove('active'));
+  renderStudySessions();
+  renderStudyWeekly();
+  const h = Math.floor(mins / 60), m = mins % 60;
+  showToast(`📖 ${currentSubject} ${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm' : ''} บันทึกแล้ว`);
+}
+
+function removeStudySession(idx) {
+  const log = getLog(getToday());
+  if (!log.study) return;
+  log.study.splice(idx, 1);
+  save();
+  renderHome();
+  renderStudySessions();
+  renderStudyWeekly();
+}
+
+function renderStudySessions() {
+  const el = document.getElementById('study-sessions-list');
+  if (!el) return;
+  const sessions = data[getToday()]?.study || [];
+  if (!sessions.length) { el.innerHTML = ''; return; }
+
+  const rows = sessions.map((s, i) => {
+    const h = Math.floor(s.mins / 60), m = s.mins % 60;
+    const timeStr = `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm' : ''}`.trim();
+    return `
+      <div class="study-session-row">
+        <div class="study-session-info">
+          <div class="study-session-name">${s.subject}</div>
+          <div class="study-session-sub">${timeStr}</div>
+        </div>
+        <button class="btn-del-session" onclick="removeStudySession(${i})">🗑</button>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="study-session-list"><div class="study-section-label">วันนี้</div>${rows}</div>`;
+}
+
+function renderStudyWeekly() {
+  const el = document.getElementById('study-weekly');
+  if (!el) return;
+  const weekDates = getWeekDates();
+  const totals = {};
+  weekDates.forEach(date => {
+    (data[date]?.study || []).forEach(s => {
+      totals[s.subject] = (totals[s.subject] || 0) + s.mins;
+    });
+  });
+  if (!Object.keys(totals).length) { el.innerHTML = ''; return; }
+
+  const rows = Object.entries(totals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([subj, mins]) => {
+      const h = Math.floor(mins / 60), m = mins % 60;
+      const timeStr = `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm' : ''}`.trim();
+      return `<div class="study-week-row"><span class="study-week-subj">${subj}</span><span class="study-week-hrs">${timeStr}</span></div>`;
+    }).join('');
+
+  el.innerHTML = `<div class="card study-week-card"><div class="study-section-label">สัปดาห์นี้</div>${rows}</div>`;
 }
 
 // ─── POMODORO ────────────────────────────────────────────────────────────────

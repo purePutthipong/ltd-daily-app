@@ -28,6 +28,7 @@
           <button class="btn-settings" onclick="openOverlay('settings')">⚙️</button>
         </div>
         <div class="streak-row" id="streak-row"></div>
+        <div id="weekly-goals"></div>
 
         <!-- Water -->
         <div class="card">
@@ -46,6 +47,15 @@
             <span class="exercise-label">🏃 ออกกำลังกาย</span>
             <div class="toggle" id="exercise-toggle" onclick="toggleExercise()"></div>
           </div>
+        </div>
+
+        <!-- Study -->
+        <div class="card card-tap" onclick="openOverlay('study')">
+          <div class="card-header">
+            <span class="card-title">📖 Study</span>
+            <span class="log-badge" id="study-badge">+ Log</span>
+          </div>
+          <div class="log-preview" id="study-preview">ยังไม่ได้บันทึก</div>
         </div>
 
         <!-- Morning -->
@@ -198,6 +208,38 @@
         <textarea class="form-input" id="reflection" rows="4" placeholder="วันนี้เป็นยังไงบ้าง..."></textarea>
       </div>
       <button class="btn-save" onclick="saveNight()">บันทึก Night</button>
+    </div>
+  </div>
+
+  <!-- ─── STUDY OVERLAY ─── -->
+  <div class="overlay" id="overlay-study">
+    <div class="overlay-header">
+      <button class="btn-back" onclick="closeOverlay()">‹</button>
+      <span class="overlay-title">📖 Study Log</span>
+    </div>
+    <div class="overlay-body">
+      <div class="form-group">
+        <label class="form-label">วิชา</label>
+        <div class="subject-row">
+          <button class="subject-btn active" data-s="Control"         onclick="selectSubject('Control')">Control</button>
+          <button class="subject-btn"         data-s="MCU"            onclick="selectSubject('MCU')">MCU</button>
+          <button class="subject-btn"         data-s="Studio"         onclick="selectSubject('Studio')">Studio</button>
+          <button class="subject-btn"         data-s="อื่นๆ"          onclick="selectSubject('อื่นๆ')">อื่นๆ</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">เวลา (นาที)</label>
+        <div class="duration-presets">
+          <button class="dur-preset" onclick="setStudyDuration(30)">30</button>
+          <button class="dur-preset" onclick="setStudyDuration(60)">60</button>
+          <button class="dur-preset" onclick="setStudyDuration(90)">90</button>
+          <button class="dur-preset" onclick="setStudyDuration(120)">120</button>
+        </div>
+        <input type="number" class="form-input" id="study-mins" placeholder="หรือพิมพ์เอง (นาที)" min="1" max="480" style="margin-top:8px">
+      </div>
+      <button class="btn-save" onclick="addStudySession()">+ เพิ่ม Session</button>
+      <div id="study-sessions-list"></div>
+      <div id="study-weekly"></div>
     </div>
   </div>
 

@@ -937,6 +937,115 @@ textarea.form-input {
 }
 .btn-speak:active { opacity: 1; }
 
+/* ─── WEEKLY GOALS ─── */
+
+.weekly-goals-card { padding: 14px 16px; margin-bottom: 12px; }
+
+.goal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.goal-row:last-child { margin-bottom: 0; }
+
+.goal-icon { font-size: 15px; width: 20px; flex-shrink: 0; }
+
+.goal-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: var(--elevated);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.goal-bar { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+.goal-val { font-size: 13px; font-weight: 700; width: 30px; text-align: right; flex-shrink: 0; }
+.goal-target { font-weight: 400; color: var(--muted); font-size: 11px; }
+
+/* ─── STUDY ─── */
+
+.subject-row { display: flex; gap: 8px; }
+.subject-btn {
+  flex: 1;
+  background: var(--elevated);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.subject-btn.active {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: rgba(88,166,255,0.1);
+}
+
+.duration-presets { display: flex; gap: 8px; }
+.dur-preset {
+  flex: 1;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.dur-preset.active { border-color: var(--green); color: var(--green); background: rgba(63,185,80,0.1); }
+
+.study-session-list { margin-top: 20px; }
+.study-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.study-session-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--elevated);
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.study-session-info { flex: 1; }
+.study-session-name { font-size: 14px; font-weight: 600; }
+.study-session-sub  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.btn-del-session {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.45;
+  padding: 0 4px;
+  transition: opacity 0.15s;
+}
+.btn-del-session:active { opacity: 1; }
+
+.study-week-card { margin-top: 20px; }
+.study-week-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.study-week-row:last-child { border-bottom: none; }
+.study-week-subj { font-weight: 600; }
+.study-week-hrs  { font-weight: 700; color: var(--blue); }
+
 /* ─── HOME ACTIONS ─── */
 
 .home-actions {
