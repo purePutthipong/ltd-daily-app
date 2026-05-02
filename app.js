@@ -902,6 +902,33 @@ function renderDCASummary(stocks, fng) {
     </div>`;
 }
 
+function renderGrowthSummary(stocks) {
+  const growthStocks = PORTFOLIO.growth.map(s => ({ ...stocks[s.symbol], symbol: s.symbol, name: s.name }));
+  const alerts = [];
+
+  growthStocks.forEach(s => {
+    const reasons = [];
+    if (s.rsi !== null && s.rsi > 75)   reasons.push(`RSI ${s.rsi.toFixed(0)}`);
+    if (s.vsMA !== null && s.vsMA > 30)  reasons.push(`+${s.vsMA.toFixed(1)}% เหนือ MA120`);
+    if (reasons.length) alerts.push({ symbol: s.symbol, reasons });
+  });
+
+  const hasAlert  = alerts.length > 0;
+  const recText   = hasAlert ? 'พิจารณาขาย' : 'ถือต่อ';
+  const recColor  = hasAlert ? '#e3a008' : '#3fb950';
+  const recIcon   = hasAlert ? '⚠️' : '✅';
+  const subText   = hasAlert
+    ? alerts.map(a => `${a.symbol}: ${a.reasons.join(', ')}`).join(' · ')
+    : 'ยังไม่มีสัญญาณขาย — รอกำไรวิ่งต่อ';
+
+  return `
+    <div class="card dca-card">
+      <div class="card-title">🚀 Growth Signal</div>
+      <div class="dca-rec" style="color:${recColor}">${recIcon} ${recText}</div>
+      <div class="dca-reasons">${subText}</div>
+    </div>`;
+}
+
 function renderPortfolioUI(portData) {
   const { stocks, fng, updatedAt } = portData;
   const fngColor = fng.value < 25 ? '#f85149' : fng.value < 45 ? '#e3a008' : fng.value < 55 ? '#caa505' : fng.value < 75 ? '#7ee787' : '#3fb950';
@@ -918,6 +945,9 @@ function renderPortfolioUI(portData) {
 
   // DCA Summary
   html += renderDCASummary(stocks, fng);
+
+  // Growth Summary
+  html += renderGrowthSummary(stocks);
 
   // DCA Portfolio
   html += `<div class="port-section-title">💼 DCA Portfolio</div>`;
