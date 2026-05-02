@@ -25,6 +25,7 @@
           <div class="date-day" id="date-day"></div>
           <div class="date-full" id="date-full"></div>
           <div class="sync-status" id="sync-status"></div>
+          <button class="btn-settings" onclick="openOverlay('settings')">⚙️</button>
         </div>
         <div class="streak-row" id="streak-row"></div>
 
@@ -71,7 +72,10 @@
 
       <!-- HISTORY VIEW -->
       <div id="view-history" class="view">
-        <div class="section-title">ประวัติ</div>
+        <div class="section-title">
+          ประวัติ
+          <button class="btn-weekly" onclick="generateWeeklySummary()">📊 สรุปสัปดาห์</button>
+        </div>
         <div id="history-list"></div>
       </div>
 
@@ -188,6 +192,46 @@
         <textarea class="form-input" id="reflection" rows="4" placeholder="วันนี้เป็นยังไงบ้าง..."></textarea>
       </div>
       <button class="btn-save" onclick="saveNight()">บันทึก Night</button>
+    </div>
+  </div>
+
+  <!-- ─── SETTINGS OVERLAY ─── -->
+  <div class="overlay" id="overlay-settings">
+    <div class="overlay-header">
+      <button class="btn-back" onclick="closeOverlay()">‹</button>
+      <span class="overlay-title">⚙️ Settings</span>
+    </div>
+    <div class="overlay-body">
+      <div class="settings-section-label">🔔 การแจ้งเตือน</div>
+
+      <div class="settings-row">
+        <div class="settings-info">
+          <div class="settings-row-title">🌅 Morning</div>
+          <div class="settings-row-sub">เตือนบันทึก Morning Log</div>
+        </div>
+        <div class="toggle" id="notif-morning-toggle" onclick="toggleNotif('morning')"></div>
+      </div>
+      <input type="time" class="form-input" id="notif-morning-time" style="margin-bottom:18px">
+
+      <div class="settings-row">
+        <div class="settings-info">
+          <div class="settings-row-title">📚 Vocab</div>
+          <div class="settings-row-sub">เตือนฝึกคำศัพท์</div>
+        </div>
+        <div class="toggle" id="notif-vocab-toggle" onclick="toggleNotif('vocab')"></div>
+      </div>
+      <input type="time" class="form-input" id="notif-vocab-time" style="margin-bottom:18px">
+
+      <div class="settings-row">
+        <div class="settings-info">
+          <div class="settings-row-title">🌙 Night</div>
+          <div class="settings-row-sub">เตือนบันทึก Night Log</div>
+        </div>
+        <div class="toggle" id="notif-night-toggle" onclick="toggleNotif('night')"></div>
+      </div>
+      <input type="time" class="form-input" id="notif-night-time" style="margin-bottom:24px">
+
+      <button class="btn-save" onclick="saveSettings()">บันทึก</button>
     </div>
   </div>
 

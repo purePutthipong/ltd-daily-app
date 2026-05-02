@@ -3,6 +3,7 @@
 const STORAGE_KEY    = 'ltd-daily-v1';
 const COST_KEY       = 'ltd-costbasis';
 const VOCAB_KEY      = 'ltd-vocab-v1';
+const NOTIF_KEY      = 'ltd-notif-v1';
 const MAX_WATER      = 8;
 const SRS_INTERVALS  = [0, 1, 3, 7, 14, 30]; // days per level 0-5
 
@@ -261,6 +262,8 @@ function openOverlay(name) {
     syncTaskCbUI(log);
     document.getElementById('overlay-morning').classList.add('open');
     if (!log.morning.wakeTime) tryAutoFill('wake');
+  } else if (name === 'settings') {
+    openSettingsOverlay();
   } else {
     document.getElementById('sleep-time').value  = log.night.sleepTime || '';
     document.getElementById('reflection').value  = log.night.reflection || '';
@@ -1353,7 +1356,7 @@ function showVocabQ() {
       <div class="quiz-prog">${vocabIdx + 1} / ${vocabSession.length}</div>
     </div>
     <div class="quiz-card">
-      <div class="quiz-word">${word.en}</div>
+      <div class="quiz-word">${word.en} <button class="btn-speak" onclick="speakWord('${word.en}')">🔊</button></div>
       <div class="quiz-example">"${word.ex}"</div>
     </div>
     <div class="quiz-hint">แปลว่าอะไร?</div>
@@ -1365,6 +1368,7 @@ function showVocabQ() {
           ${c.th}
         </button>`).join('')}
     </div>`;
+  speakWord(word.en);
 }
 
 function answerVocab(btn, wordId, isCorrect) {
@@ -1483,12 +1487,179 @@ function _downloadLog(date, content) {
   URL.revokeObjectURL(url);
 }
 
+// ─── SPEECH ──────────────────────────────────────────────────────────────────
+
+function speakWord(text) {
+  if (!('speechSynthesis' in window)) return;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'en-US';
+  utt.rate = 0.85;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utt);
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+function loadNotifSettings() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveNotifSettings(s) { localStorage.setItem(NOTIF_KEY, JSON.stringify(s)); }
+
+function openSettingsOverlay() {
+  const ns = loadNotifSettings();
+  const defaults = { morning: '08:00', vocab: '12:00', night: '22:00' };
+  ['morning', 'vocab', 'night'].forEach(key => {
+    const s = ns[key] || { on: false, time: defaults[key] };
+    const toggle    = document.getElementById(`notif-${key}-toggle`);
+    const timeInput = document.getElementById(`notif-${key}-time`);
+    if (toggle)    toggle.className = 'toggle' + (s.on ? ' on' : '');
+    if (timeInput) timeInput.value  = s.time || defaults[key];
+  });
+  document.getElementById('overlay-settings').classList.add('open');
+}
+
+function toggleNotif(key) {
+  document.getElementById(`notif-${key}-toggle`).classList.toggle('on');
+}
+
+async function saveSettings() {
+  const ns = {};
+  for (const key of ['morning', 'vocab', 'night']) {
+    const on   = document.getElementById(`notif-${key}-toggle`).classList.contains('on');
+    const time = document.getElementById(`notif-${key}-time`).value;
+    ns[key] = { on, time };
+  }
+
+  if (Object.values(ns).some(s => s.on)) {
+    if (!('Notification' in window)) {
+      showToast('❌ เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน');
+      saveNotifSettings(ns);
+      closeOverlay();
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      showToast('❌ ต้องอนุญาต Notification ก่อน');
+      saveNotifSettings(ns);
+      closeOverlay();
+      return;
+    }
+  }
+
+  saveNotifSettings(ns);
+  scheduleNotifications(ns);
+  closeOverlay();
+  showToast('⚙️ บันทึก Settings แล้ว');
+}
+
+function scheduleNotifications(ns) {
+  if (window._notifTimers) window._notifTimers.forEach(clearTimeout);
+  window._notifTimers = [];
+
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const LABELS = { morning: '🌅 Morning Log', vocab: '📚 Vocab วันนี้', night: '🌙 Night Log' };
+  const BODIES  = {
+    morning: 'บันทึก mood และ tasks ของวันนี้',
+    vocab:   'ฝึกคำศัพท์วันนี้แล้วยัง?',
+    night:   'บันทึก reflection และ energy ก่อนนอน'
+  };
+
+  const now = new Date();
+  for (const [key, s] of Object.entries(ns)) {
+    if (!s.on || !s.time) continue;
+    const [h, m] = s.time.split(':').map(Number);
+    const fire = new Date(now);
+    fire.setHours(h, m, 0, 0);
+    if (fire <= now) fire.setDate(fire.getDate() + 1);
+    const delay = fire - now;
+    const timer = setTimeout(() => {
+      new Notification(LABELS[key], { body: BODIES[key], icon: './icon.svg' });
+      scheduleNotifications(loadNotifSettings()); // reschedule for next day
+    }, delay);
+    window._notifTimers.push(timer);
+  }
+}
+
+// ─── WEEKLY SUMMARY ───────────────────────────────────────────────────────────
+
+function generateWeeklySummary() {
+  const d = new Date();
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    dates.push(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`);
+    d.setDate(d.getDate() - 1);
+  }
+
+  const withLogs = dates.filter(date => data[date]);
+  if (!withLogs.length) { showToast('ไม่มีข้อมูล 7 วันที่ผ่านมา'); return; }
+
+  const logs = withLogs.map(date => ({ date, ...data[date] }));
+
+  const waterDays    = logs.filter(l => (l.water || 0) >= 6).length;
+  const exerciseDays = logs.filter(l => l.exercise).length;
+  const loggedDays   = logs.filter(l => l.morning?.mood > 0 || l.night?.energy > 0).length;
+
+  const moods    = logs.map(l => l.morning?.mood).filter(Boolean);
+  const energies = logs.map(l => l.night?.energy).filter(Boolean);
+  const avgMood   = moods.length    ? (moods.reduce((a, b)    => a + b, 0) / moods.length).toFixed(1)    : '-';
+  const avgEnergy = energies.length ? (energies.reduce((a, b) => a + b, 0) / energies.length).toFixed(1) : '-';
+
+  const dateFrom = dates[dates.length - 1];
+  const dateTo   = dates[0];
+
+  const wakeLines = logs
+    .filter(l => l.morning?.wakeTime)
+    .map(l => `- ${l.date}: ตื่น ${l.morning.wakeTime}`)
+    .join('\n');
+
+  const sleepLines = logs
+    .filter(l => l.night?.sleepTime)
+    .map(l => `- ${l.date}: นอน ${l.night.sleepTime}`)
+    .join('\n');
+
+  const reflections = logs
+    .filter(l => l.night?.reflection?.trim())
+    .map(l => `- **${l.date}**: ${l.night.reflection.trim()}`)
+    .join('\n');
+
+  const md = [
+    `# Weekly Summary`,
+    `${dateFrom} — ${dateTo}`,
+    ``,
+    `## 📊 Overview`,
+    `| | |`,
+    `|---|---|`,
+    `| 📝 บันทึกครบ | ${loggedDays}/${logs.length} วัน |`,
+    `| 💧 น้ำ ≥6 แก้ว | ${waterDays}/${logs.length} วัน |`,
+    `| 🏃 ออกกำลังกาย | ${exerciseDays}/${logs.length} วัน |`,
+    `| 😊 Mood เฉลี่ย | ${avgMood}/5 |`,
+    `| ⚡ Energy เฉลี่ย | ${avgEnergy}/5 |`,
+    ``,
+    `## ⏰ Wake & Sleep`,
+    wakeLines  || '- ไม่มีข้อมูล',
+    sleepLines || '',
+    ``,
+    `## 💭 Reflections`,
+    reflections || '- ไม่มีข้อมูล',
+  ].join('\n');
+
+  if (navigator.share) {
+    navigator.share({ title: `Weekly Summary ${dateFrom}`, text: md })
+      .catch(() => _downloadLog(`weekly-${dateFrom}`, md));
+  } else {
+    _downloadLog(`weekly-${dateFrom}`, md);
+  }
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
 async function init() {
   loadWords();
   data = loadData();
   renderHome();
+  scheduleNotifications(loadNotifSettings());
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
