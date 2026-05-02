@@ -1,4 +1,4 @@
-const CACHE = 'ltd-daily-v7';
+const CACHE = 'ltd-daily-v8';
 const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

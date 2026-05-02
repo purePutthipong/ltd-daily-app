@@ -47,7 +47,8 @@ html, body {
 
 /* ─── DATE HEADER ─── */
 
-.date-header { margin-bottom: 22px; }
+.date-header { margin-bottom: 22px; position: relative; }
+.sync-status { position: absolute; top: 0; right: 0; font-size: 18px; opacity: 0.6; }
 
 .date-day {
   font-size: 32px;

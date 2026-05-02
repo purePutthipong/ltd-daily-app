@@ -28,6 +28,7 @@ function loadData() {
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  if (gAccessToken) driveSave(gAccessToken, data).catch(() => {});
 }
 
 function loadCostBasis() {
@@ -658,19 +659,21 @@ function renderInsights() {
   container.innerHTML = html;
 }
 
-// ─── GOOGLE CALENDAR ─────────────────────────────────────────────────────────
+// ─── GOOGLE AUTH + DRIVE SYNC ────────────────────────────────────────────────
 
 let gTokenClient = null;
 let gAccessToken = null;
+let driveFileId  = null;
 
-const G_AUTH_KEY = 'ltd-gcal-auth';
-const isAuthorized = () => localStorage.getItem(G_AUTH_KEY) === '1';
+const G_AUTH_KEY      = 'ltd-auth-v2';   // v2 = calendar + drive scope
+const DRIVE_FILE_NAME = 'ltd-daily-data.json';
+const isAuthorized    = () => localStorage.getItem(G_AUTH_KEY) === '1';
 
 function getTokenClient() {
   if (!gTokenClient) {
     gTokenClient = google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/calendar.readonly',
+      scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.appdata',
       callback: () => {}
     });
   }
@@ -692,6 +695,52 @@ function requestToken(silent = false) {
     };
     client.requestAccessToken({ prompt: silent ? 'none' : '' });
   });
+}
+
+// ── Drive helpers ──
+
+async function driveGetFileId(token) {
+  if (driveFileId) return driveFileId;
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D'${DRIVE_FILE_NAME}'&fields=files(id)`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const json = await res.json();
+  driveFileId = json.files?.[0]?.id || null;
+  return driveFileId;
+}
+
+async function driveLoad(token) {
+  const fileId = await driveGetFileId(token);
+  if (!fileId) return null;
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+async function driveSave(token, dataObj) {
+  const content  = JSON.stringify(dataObj);
+  const fileId   = await driveGetFileId(token);
+  if (fileId) {
+    await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+      { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: content }
+    );
+  } else {
+    const meta = JSON.stringify({ name: DRIVE_FILE_NAME, parents: ['appDataFolder'] });
+    const form = new FormData();
+    form.append('metadata', new Blob([meta], { type: 'application/json' }));
+    form.append('file',     new Blob([content], { type: 'application/json' }));
+    const res = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form }
+    );
+    const json = await res.json();
+    driveFileId = json.id || null;
+  }
 }
 
 async function tryAutoFill(type) {
@@ -1206,12 +1255,50 @@ function _downloadLog(date, content) {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
-function init() {
+async function init() {
   data = loadData();
   renderHome();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  // Drive sync on startup
+  if (isAuthorized()) {
+    try {
+      const token = await requestToken(true);
+      const driveData = await driveLoad(token);
+      if (driveData && typeof driveData === 'object') {
+        // Merge: Drive = source of truth; preserve today's local edits on top
+        const today = getToday();
+        const todayLocal = data[today] ? JSON.parse(JSON.stringify(data[today])) : null;
+        data = { ...driveData };
+        if (todayLocal) {
+          // Keep whichever version of today has more filled fields
+          const driveToday = driveData[today];
+          const localWater = todayLocal.water || 0;
+          const driveWater = driveToday?.water || 0;
+          data[today] = localWater >= driveWater ? todayLocal : (driveToday || todayLocal);
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        renderHome();
+        setSyncStatus('synced');
+      }
+    } catch {
+      setSyncStatus('offline');
+    }
+  }
+}
+
+function setSyncStatus(status) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (status === 'synced') {
+    el.textContent = '☁️';
+    el.title = 'ซิงค์แล้ว';
+  } else {
+    el.textContent = '📴';
+    el.title = 'ออฟไลน์';
   }
 }
 
