@@ -183,12 +183,14 @@ function openOverlay(name) {
     syncMoodUI();
     syncTaskCbUI(log);
     document.getElementById('overlay-morning').classList.add('open');
+    if (!log.morning.wakeTime) tryAutoFill('wake');
   } else {
     document.getElementById('sleep-time').value  = log.night.sleepTime || '';
     document.getElementById('reflection').value  = log.night.reflection || '';
     currentEnergy = log.night.energy;
     syncEnergyUI();
     document.getElementById('overlay-night').classList.add('open');
+    if (!log.night.sleepTime) tryAutoFill('sleep');
   }
 }
 
@@ -559,6 +561,9 @@ function renderInsights() {
 let gTokenClient = null;
 let gAccessToken = null;
 
+const G_AUTH_KEY = 'ltd-gcal-auth';
+const isAuthorized = () => localStorage.getItem(G_AUTH_KEY) === '1';
+
 function getTokenClient() {
   if (!gTokenClient) {
     gTokenClient = google.accounts.oauth2.initTokenClient({
@@ -570,21 +575,41 @@ function getTokenClient() {
   return gTokenClient;
 }
 
-function requestToken() {
+function requestToken(silent = false) {
   return new Promise((resolve, reject) => {
     if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
-      reject(new Error('no-client-id'));
-      return;
+      reject(new Error('no-client-id')); return;
     }
+    if (gAccessToken) { resolve(gAccessToken); return; }
     const client = getTokenClient();
     client.callback = (res) => {
       if (res.error) { reject(new Error(res.error)); return; }
       gAccessToken = res.access_token;
+      localStorage.setItem(G_AUTH_KEY, '1');
       resolve(gAccessToken);
     };
-    if (gAccessToken) { resolve(gAccessToken); return; }
-    client.requestAccessToken({ prompt: '' });
+    client.requestAccessToken({ prompt: silent ? 'none' : '' });
   });
+}
+
+async function tryAutoFill(type) {
+  if (!isAuthorized() && !gAccessToken) return;
+  try {
+    await requestToken(true);
+    const ev = await fetchLatestSleepEvent();
+    if (!ev) return;
+    if (type === 'wake') {
+      const end = new Date(ev.end.dateTime || ev.end.date);
+      const t = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+      document.getElementById('wake-time').value = t;
+      showToast(`🌅 ดึงเวลาตื่น ${t} อัตโนมัติ`);
+    } else {
+      const start = new Date(ev.start.dateTime || ev.start.date);
+      const t = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+      document.getElementById('sleep-time').value = t;
+      showToast(`🌙 ดึงเวลานอน ${t} อัตโนมัติ`);
+    }
+  } catch { /* silent fail — button still available */ }
 }
 
 async function fetchLatestSleepEvent() {
@@ -621,6 +646,7 @@ async function fetchLatestSleepEvent() {
 async function autoFillWake() {
   showToast('⏳ กำลังดึงข้อมูล...');
   try {
+    await requestToken(false); // interactive — แสดง popup ถ้าจำเป็น
     const ev = await fetchLatestSleepEvent();
     if (!ev) { showToast('❌ ไม่พบ Sleep event ใน Calendar'); return; }
     const end = new Date(ev.end.dateTime || ev.end.date);
@@ -636,6 +662,7 @@ async function autoFillWake() {
 async function autoFillSleep() {
   showToast('⏳ กำลังดึงข้อมูล...');
   try {
+    await requestToken(false); // interactive — แสดง popup ถ้าจำเป็น
     const ev = await fetchLatestSleepEvent();
     if (!ev) { showToast('❌ ไม่พบ Sleep event ใน Calendar'); return; }
     const start = new Date(ev.start.dateTime || ev.start.date);
