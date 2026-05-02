@@ -65,7 +65,7 @@ html, body {
 .btn-settings:active { opacity: 1; }
 
 .date-day {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   letter-spacing: -0.5px;
   line-height: 1.1;
@@ -82,16 +82,23 @@ html, body {
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.28);
 }
 
 .card-tap {
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background 0.12s, border-color 0.12s;
 }
 .card-tap:active { background: var(--elevated); }
+
+.card-tap:has(.log-badge.done) {
+  border-left-width: 3px;
+  border-left-color: var(--green);
+  background: rgba(63,185,80,0.03);
+}
 
 .card-title {
   font-size: 11px;
@@ -136,8 +143,8 @@ html, body {
 }
 
 .dot {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--elevated);
   border: 2px solid var(--border);
@@ -148,6 +155,7 @@ html, body {
 .dot.filled {
   background: #1d4ed8;
   border-color: var(--blue);
+  box-shadow: 0 0 6px rgba(88,166,255,0.4);
 }
 
 .water-footer {
@@ -251,9 +259,21 @@ html, body {
   cursor: pointer;
   padding: 4px 0;
   transition: color 0.15s;
+  position: relative;
 }
 .nav-icon { font-size: 22px; line-height: 1; }
 .nav-btn.active { color: var(--blue); }
+.nav-btn.active::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: var(--blue);
+  border-radius: 0 0 3px 3px;
+}
 
 /* ─── OVERLAY ─── */
 
@@ -275,6 +295,7 @@ html, body {
   border-bottom: 1px solid var(--border);
   padding-top: calc(14px + env(safe-area-inset-top));
   flex-shrink: 0;
+  background: var(--card);
 }
 
 .btn-back {
@@ -340,7 +361,7 @@ textarea.form-input {
   background: var(--card);
   border: 2px solid var(--border);
   border-radius: 12px;
-  padding: 10px 0;
+  padding: 12px 0;
   cursor: pointer;
   text-align: center;
   font-size: 22px;
@@ -360,7 +381,7 @@ textarea.form-input {
   background: var(--card);
   border: 2px solid var(--border);
   border-radius: 12px;
-  padding: 10px 0;
+  padding: 12px 0;
   cursor: pointer;
   text-align: center;
   font-size: 18px;
@@ -458,7 +479,7 @@ textarea.form-input {
 .history-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   margin-bottom: 10px;
   overflow: hidden;
 }
@@ -953,9 +974,9 @@ textarea.form-input {
 
 .goal-bar-wrap {
   flex: 1;
-  height: 6px;
+  height: 8px;
   background: var(--elevated);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
 }
 .goal-bar { height: 100%; border-radius: 3px; transition: width 0.4s ease; }

@@ -433,10 +433,12 @@ function renderHistory() {
     const { day, full } = formatDate(date);
 
     const chips = [];
-    if (log.water > 0)    chips.push(`💧 ${log.water}/${MAX_WATER}`);
-    if (log.exercise)     chips.push('🏃 ออกกำลังกาย');
-    if (log.morning.mood) chips.push(MOODS[log.morning.mood]);
-    if (log.night.energy) chips.push(`⚡ ${log.night.energy}/5`);
+    if (log.water > 0)         chips.push(`💧 ${log.water}/${MAX_WATER}`);
+    if (log.exercise)          chips.push('🏃 ออกกำลังกาย');
+    if (log.morning?.mood)     chips.push(MOODS[log.morning.mood]);
+    if (log.night?.energy)     chips.push(`⚡ ${log.night.energy}/5`);
+    const studyMins = (log.study || []).reduce((s, e) => s + e.mins, 0);
+    if (studyMins > 0)         chips.push(`📖 ${studyMins < 60 ? studyMins + 'm' : (studyMins/60).toFixed(1) + 'h'}`);
 
     const chipsHtml = chips.map(c => `<span class="chip">${c}</span>`).join('');
 
@@ -473,24 +475,28 @@ function copyMd(date) {
 // ─── MARKDOWN EXPORT ─────────────────────────────────────────────────────────
 
 function toMarkdown(log) {
-  const tasks = log.morning.tasks.filter(t => t.trim());
+  const tasks = (log.morning?.tasks || []).filter(t => t.trim());
+  const study = log.study || [];
   return `# Session Log — ${log.date}
 
 ## 🌅 Morning
-- เวลาตื่น: ${log.morning.wakeTime || '-'}
-- Mood: ${log.morning.mood ? MOODS[log.morning.mood] : '-'}
+- เวลาตื่น: ${log.morning?.wakeTime || '-'}
+- Mood: ${log.morning?.mood ? MOODS[log.morning.mood] : '-'}
 
 ## ✅ Tasks
-${tasks.length ? tasks.map(t => `- [ ] ${t}`).join('\n') : '- (ว่าง)'}
+${tasks.length ? tasks.map((t, i) => `- [${(log.morning?.tasksDone?.[i] ? 'x' : ' ')}] ${t}`).join('\n') : '- (ว่าง)'}
+
+## 📖 Study
+${study.length ? study.map(s => `- ${s.subject}: ${s.mins < 60 ? s.mins + 'm' : (s.mins/60).toFixed(1) + 'h'}`).join('\n') : '- (ว่าง)'}
 
 ## 💧 Health
-- น้ำ: ${log.water}/${MAX_WATER} แก้ว
+- น้ำ: ${log.water || 0}/${MAX_WATER} แก้ว
 - ออกกำลังกาย: ${log.exercise ? 'Yes ✅' : 'No ❌'}
 
 ## 🌙 Night
-- เวลานอน: ${log.night.sleepTime || '-'}
-- Energy: ${log.night.energy ? `${log.night.energy}/5` : '-'}
-- Reflection: ${log.night.reflection || '-'}
+- เวลานอน: ${log.night?.sleepTime || '-'}
+- Energy: ${log.night?.energy ? `${log.night.energy}/5` : '-'}
+- Reflection: ${log.night?.reflection || '-'}
 `;
 }
 
@@ -583,9 +589,9 @@ function calcSleepScore(analysis) {
 
   // Duration 0-30 pts
   const dur = analysis.avgDuration;
-  if (dur >= 7 && dur <= 9)       score += 30;
-  else if (dur >= 6 || dur <= 10) score += 18;
-  else                             score += 6;
+  if (dur >= 7 && dur <= 9)        score += 30;
+  else if (dur >= 6 && dur <= 10)  score += 18;
+  else                              score += 6;
 
   // Consistency 0-30 pts
   const std = analysis.wakeStdDev;
@@ -1632,6 +1638,10 @@ function exportTodayLog() {
     return `- [${done ? 'x' : ' '}] ${t}`;
   }).filter(Boolean);
 
+  const studyLines = (log.study || []).map(s =>
+    `- ${s.subject}: ${s.mins < 60 ? s.mins + 'm' : (s.mins/60).toFixed(1) + 'h'}`
+  );
+
   const md = [
     `# ${today} (${day})`,
     ``,
@@ -1641,6 +1651,9 @@ function exportTodayLog() {
     ``,
     `### Tasks`,
     taskLines.length ? taskLines.join('\n') : `- (ไม่มี task)`,
+    ``,
+    `## 📖 Study`,
+    studyLines.length ? studyLines.join('\n') : `- (ว่าง)`,
     ``,
     `## Health`,
     `- 💧 น้ำ: ${log.water || 0}/${MAX_WATER} แก้ว`,
