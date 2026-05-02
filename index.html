@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="LTD Daily">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+  <title>LTD Daily</title>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ─── CONTENT ─── -->
+    <div class="content">
+
+      <!-- HOME VIEW -->
+      <div id="view-home" class="view active">
+        <div class="date-header">
+          <div class="date-day" id="date-day"></div>
+          <div class="date-full" id="date-full"></div>
+        </div>
+
+        <!-- Water -->
+        <div class="card">
+          <div class="card-title">💧 น้ำ</div>
+          <div class="water-dots" id="water-dots"></div>
+          <div class="water-footer">
+            <button class="btn-round" onclick="removeWater()">−</button>
+            <span class="water-label" id="water-label">0 / 8 แก้ว</span>
+            <button class="btn-round btn-blue" onclick="addWater()">+</button>
+          </div>
+        </div>
+
+        <!-- Exercise -->
+        <div class="card">
+          <div class="exercise-row">
+            <span class="exercise-label">🏃 ออกกำลังกาย</span>
+            <div class="toggle" id="exercise-toggle" onclick="toggleExercise()"></div>
+          </div>
+        </div>
+
+        <!-- Morning -->
+        <div class="card card-tap" onclick="openOverlay('morning')">
+          <div class="card-header">
+            <span class="card-title">🌅 Morning</span>
+            <span class="log-badge" id="morning-badge">+ Log</span>
+          </div>
+          <div class="log-preview" id="morning-preview">ยังไม่ได้บันทึก</div>
+        </div>
+
+        <!-- Night -->
+        <div class="card card-tap" onclick="openOverlay('night')">
+          <div class="card-header">
+            <span class="card-title">🌙 Night</span>
+            <span class="log-badge" id="night-badge">+ Log</span>
+          </div>
+          <div class="log-preview" id="night-preview">ยังไม่ได้บันทึก</div>
+        </div>
+      </div>
+
+      <!-- HISTORY VIEW -->
+      <div id="view-history" class="view">
+        <div class="section-title">ประวัติ</div>
+        <div id="history-list"></div>
+      </div>
+
+    </div>
+
+    <!-- ─── BOTTOM NAV ─── -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" id="nav-home" onclick="switchTab('home')">
+        <span class="nav-icon">🏠</span>
+        <span>วันนี้</span>
+      </button>
+      <button class="nav-btn" id="nav-history" onclick="switchTab('history')">
+        <span class="nav-icon">📋</span>
+        <span>ประวัติ</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ─── MORNING OVERLAY ─── -->
+  <div class="overlay" id="overlay-morning">
+    <div class="overlay-header">
+      <button class="btn-back" onclick="closeOverlay()">‹</button>
+      <span class="overlay-title">🌅 Morning Log</span>
+    </div>
+    <div class="overlay-body">
+      <div class="form-group">
+        <label class="form-label">เวลาตื่น</label>
+        <input type="time" class="form-input" id="wake-time">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mood วันนี้</label>
+        <div class="mood-row">
+          <button class="mood-btn" data-mood="1" onclick="selectMood(1)">😴<div class="sub-text">ง่วง</div></button>
+          <button class="mood-btn" data-mood="2" onclick="selectMood(2)">😕<div class="sub-text">แย่</div></button>
+          <button class="mood-btn" data-mood="3" onclick="selectMood(3)">😐<div class="sub-text">ปกติ</div></button>
+          <button class="mood-btn" data-mood="4" onclick="selectMood(4)">🙂<div class="sub-text">ดี</div></button>
+          <button class="mood-btn" data-mood="5" onclick="selectMood(5)">😄<div class="sub-text">ดีมาก</div></button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tasks วันนี้</label>
+        <div class="task-list">
+          <div class="task-row"><span class="task-num">1.</span><input type="text" class="form-input" id="task-1" placeholder="Task แรก"></div>
+          <div class="task-row"><span class="task-num">2.</span><input type="text" class="form-input" id="task-2" placeholder="Task สอง"></div>
+          <div class="task-row"><span class="task-num">3.</span><input type="text" class="form-input" id="task-3" placeholder="Task สาม"></div>
+        </div>
+      </div>
+      <button class="btn-save" onclick="saveMorning()">บันทึก Morning</button>
+    </div>
+  </div>
+
+  <!-- ─── NIGHT OVERLAY ─── -->
+  <div class="overlay" id="overlay-night">
+    <div class="overlay-header">
+      <button class="btn-back" onclick="closeOverlay()">‹</button>
+      <span class="overlay-title">🌙 Night Log</span>
+    </div>
+    <div class="overlay-body">
+      <div class="form-group">
+        <label class="form-label">เวลานอน (คาดว่า)</label>
+        <input type="time" class="form-input" id="sleep-time">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Energy วันนี้</label>
+        <div class="energy-row">
+          <button class="energy-btn" data-e="1" onclick="selectEnergy(1)">1<div class="sub-text">หมดแรง</div></button>
+          <button class="energy-btn" data-e="2" onclick="selectEnergy(2)">2<div class="sub-text">เหนื่อย</div></button>
+          <button class="energy-btn" data-e="3" onclick="selectEnergy(3)">3<div class="sub-text">พอไหว</div></button>
+          <button class="energy-btn" data-e="4" onclick="selectEnergy(4)">4<div class="sub-text">โอเค</div></button>
+          <button class="energy-btn" data-e="5" onclick="selectEnergy(5)">5<div class="sub-text">ฟิต</div></button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reflection</label>
+        <textarea class="form-input" id="reflection" rows="4" placeholder="วันนี้เป็นยังไงบ้าง..."></textarea>
+      </div>
+      <button class="btn-save" onclick="saveNight()">บันทึก Night</button>
+    </div>
+  </div>
+
+  <!-- ─── TOAST ─── -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
