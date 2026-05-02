@@ -237,6 +237,14 @@
         </div>
         <input type="number" class="form-input" id="study-mins" placeholder="หรือพิมพ์เอง (นาที)" min="1" max="480" style="margin-top:8px">
       </div>
+      <div class="form-group">
+        <label class="form-label">หรือจับเวลา Live</label>
+        <div class="study-timer-row">
+          <div class="study-timer-display" id="study-timer-display">00:00</div>
+          <button class="btn-study-timer" id="study-timer-btn" onclick="studyTimerToggle()">▶ เริ่ม</button>
+          <button class="btn-study-timer-reset" onclick="studyTimerReset()">↺</button>
+        </div>
+      </div>
       <button class="btn-save" onclick="addStudySession()">+ เพิ่ม Session</button>
       <div id="study-sessions-list"></div>
       <div id="study-weekly"></div>
@@ -302,6 +310,26 @@
         <div class="toggle" id="notif-night-toggle" onclick="toggleNotif('night')"></div>
       </div>
       <input type="time" class="form-input" id="notif-night-time" style="margin-bottom:24px">
+
+      <div class="settings-section-label">🎯 เป้าหมายสัปดาห์</div>
+      <div class="goal-settings-grid">
+        <div class="goal-settings-row">
+          <span class="goal-settings-label">📝 Log</span>
+          <input type="number" class="goal-settings-input" id="goal-target-log" min="1" max="7">
+        </div>
+        <div class="goal-settings-row">
+          <span class="goal-settings-label">💧 น้ำ</span>
+          <input type="number" class="goal-settings-input" id="goal-target-water" min="1" max="7">
+        </div>
+        <div class="goal-settings-row">
+          <span class="goal-settings-label">🏃 ออกกำลัง</span>
+          <input type="number" class="goal-settings-input" id="goal-target-exercise" min="1" max="7">
+        </div>
+        <div class="goal-settings-row">
+          <span class="goal-settings-label">📚 EN</span>
+          <input type="number" class="goal-settings-input" id="goal-target-vocab" min="1" max="7">
+        </div>
+      </div>
 
       <button class="btn-save" onclick="saveSettings()">บันทึก</button>
     </div>

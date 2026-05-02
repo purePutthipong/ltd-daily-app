@@ -5,6 +5,7 @@ const COST_KEY       = 'ltd-costbasis';
 const VOCAB_KEY      = 'ltd-vocab-v1';
 const NOTIF_KEY      = 'ltd-notif-v1';
 const DCA_KEY        = 'ltd-dca-v1';
+const GOALS_KEY      = 'ltd-goals-v1';
 const MAX_WATER      = 8;
 const SRS_INTERVALS  = [0, 1, 3, 7, 14, 30]; // days per level 0-5
 
@@ -47,6 +48,7 @@ let data          = {};
 let currentMood   = 0;
 let currentEnergy = 0;
 let currentSubject = 'Control';
+let studyTimer    = { running: false, startedAt: null, elapsed: 0, interval: null };
 
 // ─── STORAGE ─────────────────────────────────────────────────────────────────
 
@@ -67,6 +69,12 @@ function loadCostBasis() {
 function saveCostBasis(cb) {
   localStorage.setItem(COST_KEY, JSON.stringify(cb));
 }
+
+function loadGoalTargets() {
+  try { return JSON.parse(localStorage.getItem(GOALS_KEY) || 'null') || { log: 7, water: 5, exercise: 4, vocab: 5 }; }
+  catch { return { log: 7, water: 5, exercise: 4, vocab: 5 }; }
+}
+function saveGoalTargets(g) { localStorage.setItem(GOALS_KEY, JSON.stringify(g)); }
 
 // ─── DATE HELPERS ─────────────────────────────────────────────────────────────
 
@@ -413,6 +421,58 @@ function switchTab(tab) {
   if (tab === 'vocab')     renderVocab();
 }
 
+// ─── HEATMAP ─────────────────────────────────────────────────────────────────
+
+function renderHeatmap() {
+  const today = getToday();
+  const now   = new Date(); now.setHours(23, 59, 59, 999);
+
+  const dow        = new Date().getDay();
+  const thisMonday = new Date();
+  thisMonday.setDate(new Date().getDate() - (dow === 0 ? 6 : dow - 1));
+  thisMonday.setHours(0, 0, 0, 0);
+
+  const start = new Date(thisMonday);
+  start.setDate(start.getDate() - 28); // 4 weeks back = 5 rows total
+
+  const COLORS = ['var(--elevated)', 'rgba(63,185,80,0.2)', 'rgba(63,185,80,0.5)', '#3fb950'];
+  const DAY_LABELS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
+
+  const cells = [];
+  for (let i = 0; i < 35; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const ds       = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const isFuture = d > now;
+    const isToday  = ds === today;
+    const log      = data[ds];
+    let level = 0;
+    if (log && !isFuture) {
+      let score = 0;
+      if (log.morning?.mood > 0 || log.morning?.wakeTime) score++;
+      if (log.night?.energy > 0  || log.night?.sleepTime)  score++;
+      if ((log.water || 0) >= 6)                            score++;
+      if (log.exercise)                                     score++;
+      level = score === 0 ? 0 : score <= 1 ? 1 : score <= 3 ? 2 : 3;
+    }
+    const bg     = isFuture ? 'transparent' : COLORS[level];
+    const border = isToday ? '2px solid var(--blue)' : '2px solid transparent';
+    cells.push(`<div class="heatmap-cell" style="background:${bg};outline:${border}" title="${ds}"></div>`);
+  }
+
+  const labels = DAY_LABELS.map(l => `<div class="heatmap-day-label">${l}</div>`).join('');
+
+  return `
+    <div class="card" style="padding:12px 14px;margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:8px">📅 5 สัปดาห์ที่ผ่านมา</div>
+      <div class="heatmap-grid">${cells.join('')}</div>
+      <div class="heatmap-day-labels">${labels}</div>
+      <div style="display:flex;gap:4px;align-items:center;margin-top:8px;font-size:11px;color:var(--muted)">
+        น้อย ${COLORS.map(c => `<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${c};border:1px solid var(--border)"></span>`).join('')} มาก
+      </div>
+    </div>`;
+}
+
 // ─── HISTORY ─────────────────────────────────────────────────────────────────
 
 function renderHistory() {
@@ -420,7 +480,7 @@ function renderHistory() {
   const dates = Object.keys(data).sort((a, b) => b.localeCompare(a));
 
   if (!dates.length) {
-    container.innerHTML = `
+    container.innerHTML = renderHeatmap() + `
       <div class="empty">
         <div class="empty-icon">📋</div>
         <div class="empty-text">ยังไม่มีข้อมูล<br>เริ่มบันทึกวันแรกได้เลย!</div>
@@ -428,7 +488,7 @@ function renderHistory() {
     return;
   }
 
-  container.innerHTML = dates.map(date => {
+  container.innerHTML = renderHeatmap() + dates.map(date => {
     const log = data[date];
     const { day, full } = formatDate(date);
 
@@ -1696,11 +1756,12 @@ function renderWeeklyGoals() {
   const exerCount  = weekDates.filter(d => !!data[d]?.exercise).length;
   const vocabCount = weekDates.filter(d => vocabSessions.has(d)).length;
 
+  const gt = loadGoalTargets();
   const goals = [
-    { icon: '📝', label: 'Log',      val: logCount,   target: 7 },
-    { icon: '💧', label: 'น้ำ',      val: waterCount, target: 5 },
-    { icon: '🏃', label: 'ออกกำลัง', val: exerCount,  target: 4 },
-    { icon: '📚', label: 'EN',       val: vocabCount, target: 5 },
+    { icon: '📝', label: 'Log',      val: logCount,   target: gt.log },
+    { icon: '💧', label: 'น้ำ',      val: waterCount, target: gt.water },
+    { icon: '🏃', label: 'ออกกำลัง', val: exerCount,  target: gt.exercise },
+    { icon: '📚', label: 'EN',       val: vocabCount, target: gt.vocab },
   ];
 
   const rows = goals.map(g => {
@@ -1718,6 +1779,47 @@ function renderWeeklyGoals() {
 }
 
 // ─── STUDY ───────────────────────────────────────────────────────────────────
+
+// ─── STUDY TIMER ─────────────────────────────────────────────────────────────
+
+function studyTimerToggle() {
+  if (studyTimer.running) {
+    clearInterval(studyTimer.interval);
+    studyTimer.elapsed += Date.now() - studyTimer.startedAt;
+    studyTimer.running = false;
+    const mins = Math.round(studyTimer.elapsed / 60000);
+    if (mins > 0) {
+      document.getElementById('study-mins').value = mins;
+      document.querySelectorAll('.dur-preset').forEach(btn =>
+        btn.classList.toggle('active', btn.textContent.trim() === String(mins)));
+    }
+    const btn = document.getElementById('study-timer-btn');
+    if (btn) btn.textContent = '▶ ต่อ';
+  } else {
+    studyTimer.startedAt = Date.now();
+    studyTimer.running   = true;
+    studyTimer.interval  = setInterval(studyTimerTick, 1000);
+    const btn = document.getElementById('study-timer-btn');
+    if (btn) btn.textContent = '⏸ หยุด';
+  }
+}
+
+function studyTimerTick() {
+  const elapsed  = studyTimer.elapsed + (Date.now() - studyTimer.startedAt);
+  const totalSec = Math.floor(elapsed / 1000);
+  const m = Math.floor(totalSec / 60), s = totalSec % 60;
+  const el = document.getElementById('study-timer-display');
+  if (el) el.textContent = `${pad(m)}:${pad(s)}`;
+}
+
+function studyTimerReset() {
+  clearInterval(studyTimer.interval);
+  studyTimer = { running: false, startedAt: null, elapsed: 0, interval: null };
+  const el  = document.getElementById('study-timer-display');
+  const btn = document.getElementById('study-timer-btn');
+  if (el)  el.textContent  = '00:00';
+  if (btn) btn.textContent = '▶ เริ่ม';
+}
 
 function selectSubject(s) {
   currentSubject = s;
@@ -1737,6 +1839,7 @@ function openStudyOverlay() {
     btn.classList.toggle('active', btn.dataset.s === 'Control'));
   document.querySelectorAll('.dur-preset').forEach(btn => btn.classList.remove('active'));
   document.getElementById('study-mins').value = '';
+  studyTimerReset();
   renderStudySessions();
   renderStudyWeekly();
   document.getElementById('overlay-study').classList.add('open');
@@ -1943,6 +2046,11 @@ function openSettingsOverlay() {
     if (toggle)    toggle.className = 'toggle' + (s.on ? ' on' : '');
     if (timeInput) timeInput.value  = s.time || defaults[key];
   });
+  const gt = loadGoalTargets();
+  ['log', 'water', 'exercise', 'vocab'].forEach(k => {
+    const el = document.getElementById(`goal-target-${k}`);
+    if (el) el.value = gt[k];
+  });
   document.getElementById('overlay-settings').classList.add('open');
 }
 
@@ -1976,6 +2084,15 @@ async function saveSettings() {
 
   saveNotifSettings(ns);
   scheduleNotifications(ns);
+
+  const gt = {};
+  ['log', 'water', 'exercise', 'vocab'].forEach(k => {
+    const val = parseInt(document.getElementById(`goal-target-${k}`)?.value);
+    gt[k] = (!isNaN(val) && val >= 1 && val <= 7) ? val : loadGoalTargets()[k];
+  });
+  saveGoalTargets(gt);
+  renderWeeklyGoals();
+
   closeOverlay();
   showToast('⚙️ บันทึก Settings แล้ว');
 }
