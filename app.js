@@ -6,328 +6,29 @@ const VOCAB_KEY      = 'ltd-vocab-v1';
 const MAX_WATER      = 8;
 const SRS_INTERVALS  = [0, 1, 3, 7, 14, 30]; // days per level 0-5
 
-const VOCAB_WORDS = [
-  // ── Verbs ──
-  {id:1,  en:'go',       th:'ไป',            ex:'Let\'s go to school.'},
-  {id:2,  en:'come',     th:'มา',            ex:'Please come here.'},
-  {id:3,  en:'eat',      th:'กิน',           ex:'I eat rice every day.'},
-  {id:4,  en:'drink',    th:'ดื่ม',           ex:'Drink water often.'},
-  {id:5,  en:'sleep',    th:'นอนหลับ',        ex:'I sleep at 10 PM.'},
-  {id:6,  en:'wake up',  th:'ตื่นนอน',        ex:'I wake up at 7 AM.'},
-  {id:7,  en:'work',     th:'ทำงาน',          ex:'She works every day.'},
-  {id:8,  en:'study',    th:'เรียน',          ex:'I study English.'},
-  {id:9,  en:'read',     th:'อ่าน',           ex:'Read this book.'},
-  {id:10, en:'write',    th:'เขียน',          ex:'Write your name.'},
-  {id:11, en:'run',      th:'วิ่ง',           ex:'He runs every morning.'},
-  {id:12, en:'walk',     th:'เดิน',           ex:'Let\'s walk to the park.'},
-  {id:13, en:'talk',     th:'พูด / คุย',      ex:'Talk to me.'},
-  {id:14, en:'listen',   th:'ฟัง',            ex:'Listen carefully.'},
-  {id:15, en:'watch',    th:'ดู',             ex:'Watch this video.'},
-  {id:16, en:'buy',      th:'ซื้อ',           ex:'I want to buy food.'},
-  {id:17, en:'sell',     th:'ขาย',            ex:'He sells phones.'},
-  {id:18, en:'pay',      th:'จ่ายเงิน',       ex:'Pay the bill.'},
-  {id:19, en:'help',     th:'ช่วย',           ex:'Can you help me?'},
-  {id:20, en:'need',     th:'ต้องการ',        ex:'I need water.'},
-  {id:21, en:'want',     th:'อยาก / ต้องการ', ex:'I want coffee.'},
-  {id:22, en:'like',     th:'ชอบ',            ex:'I like cats.'},
-  {id:23, en:'love',     th:'รัก',            ex:'I love my family.'},
-  {id:24, en:'know',     th:'รู้ / รู้จัก',   ex:'Do you know him?'},
-  {id:25, en:'think',    th:'คิด',            ex:'I think it\'s good.'},
-  {id:26, en:'feel',     th:'รู้สึก',         ex:'I feel tired.'},
-  {id:27, en:'see',      th:'เห็น',           ex:'Can you see that?'},
-  {id:28, en:'hear',     th:'ได้ยิน',         ex:'I hear music.'},
-  {id:29, en:'find',     th:'หา / พบ',        ex:'I can\'t find my keys.'},
-  {id:30, en:'get',      th:'ได้รับ',         ex:'Get some rest.'},
-  {id:31, en:'make',     th:'ทำ / สร้าง',     ex:'Make a coffee.'},
-  {id:32, en:'take',     th:'เอา / รับ',      ex:'Take this bag.'},
-  {id:33, en:'give',     th:'ให้',            ex:'Give me water.'},
-  {id:34, en:'tell',     th:'บอก',            ex:'Tell me the truth.'},
-  {id:35, en:'ask',      th:'ถาม',            ex:'Ask your teacher.'},
-  {id:36, en:'try',      th:'พยายาม',         ex:'Try your best.'},
-  {id:37, en:'use',      th:'ใช้',            ex:'Use this pen.'},
-  {id:38, en:'open',     th:'เปิด',           ex:'Open the door.'},
-  {id:39, en:'close',    th:'ปิด',            ex:'Close the window.'},
-  {id:40, en:'start',    th:'เริ่ม',          ex:'Start now.'},
-  {id:41, en:'stop',     th:'หยุด',           ex:'Stop running.'},
-  {id:42, en:'wait',     th:'รอ',             ex:'Wait for me.'},
-  {id:43, en:'remember', th:'จำ',             ex:'Remember my name.'},
-  {id:44, en:'forget',   th:'ลืม',            ex:'Don\'t forget.'},
-  {id:45, en:'learn',    th:'เรียนรู้',        ex:'Learn English every day.'},
-  {id:46, en:'teach',    th:'สอน',            ex:'She teaches math.'},
-  {id:47, en:'play',     th:'เล่น',           ex:'Play football.'},
-  {id:48, en:'win',      th:'ชนะ',            ex:'We won the game.'},
-  {id:49, en:'lose',     th:'แพ้ / หาย',      ex:'Don\'t lose hope.'},
-  {id:50, en:'bring',    th:'นำมา',           ex:'Bring your book.'},
-  // ── Nouns ──
-  {id:51, en:'time',     th:'เวลา',           ex:'What time is it?'},
-  {id:52, en:'day',      th:'วัน',            ex:'Every day is new.'},
-  {id:53, en:'night',    th:'กลางคืน / คืน',  ex:'Good night!'},
-  {id:54, en:'morning',  th:'เช้า',           ex:'Good morning!'},
-  {id:55, en:'year',     th:'ปี',             ex:'This year is 2026.'},
-  {id:56, en:'week',     th:'สัปดาห์',        ex:'See you next week.'},
-  {id:57, en:'month',    th:'เดือน',          ex:'I come every month.'},
-  {id:58, en:'food',     th:'อาหาร',          ex:'The food is good.'},
-  {id:59, en:'water',    th:'น้ำ',            ex:'Drink more water.'},
-  {id:60, en:'money',    th:'เงิน',           ex:'Save your money.'},
-  {id:61, en:'home',     th:'บ้าน',           ex:'Go home now.'},
-  {id:62, en:'school',   th:'โรงเรียน',       ex:'Go to school.'},
-  {id:63, en:'friend',   th:'เพื่อน',         ex:'My friend is kind.'},
-  {id:64, en:'family',   th:'ครอบครัว',       ex:'I love my family.'},
-  {id:65, en:'name',     th:'ชื่อ',           ex:'My name is Pure.'},
-  {id:66, en:'book',     th:'หนังสือ',        ex:'Read a book.'},
-  {id:67, en:'phone',    th:'โทรศัพท์',       ex:'My phone is new.'},
-  {id:68, en:'car',      th:'รถยนต์',         ex:'I drive a car.'},
-  {id:69, en:'room',     th:'ห้อง',           ex:'My room is clean.'},
-  {id:70, en:'bag',      th:'กระเป๋า',        ex:'Carry your bag.'},
-  {id:71, en:'city',     th:'เมือง',          ex:'Bangkok is a big city.'},
-  {id:72, en:'country',  th:'ประเทศ',         ex:'Thailand is my country.'},
-  {id:73, en:'road',     th:'ถนน',            ex:'Cross the road.'},
-  {id:74, en:'shop',     th:'ร้านค้า',        ex:'The shop is open.'},
-  {id:75, en:'job',      th:'งาน / อาชีพ',    ex:'I love my job.'},
-  {id:76, en:'idea',     th:'ความคิด / ไอเดีย',ex:'Good idea!'},
-  {id:77, en:'problem',  th:'ปัญหา',          ex:'No problem.'},
-  {id:78, en:'answer',   th:'คำตอบ',          ex:'What\'s the answer?'},
-  {id:79, en:'question', th:'คำถาม',          ex:'Good question!'},
-  {id:80, en:'price',    th:'ราคา',           ex:'What\'s the price?'},
-  // ── Adjectives ──
-  {id:81, en:'good',     th:'ดี',             ex:'This is very good.'},
-  {id:82, en:'bad',      th:'แย่ / ไม่ดี',    ex:'That\'s bad news.'},
-  {id:83, en:'big',      th:'ใหญ่',           ex:'It\'s a big room.'},
-  {id:84, en:'small',    th:'เล็ก',           ex:'A small dog.'},
-  {id:85, en:'new',      th:'ใหม่',           ex:'I have a new phone.'},
-  {id:86, en:'old',      th:'เก่า / แก่',     ex:'An old book.'},
-  {id:87, en:'hot',      th:'ร้อน',           ex:'The food is hot.'},
-  {id:88, en:'cold',     th:'เย็น / หนาว',    ex:'I feel cold.'},
-  {id:89, en:'fast',     th:'เร็ว',           ex:'Run fast!'},
-  {id:90, en:'slow',     th:'ช้า',            ex:'Drive slow.'},
-  {id:91, en:'easy',     th:'ง่าย',           ex:'It\'s easy to do.'},
-  {id:92, en:'hard',     th:'ยาก / แข็ง',     ex:'This is hard.'},
-  {id:93, en:'happy',    th:'มีความสุข',       ex:'I am very happy.'},
-  {id:94, en:'sad',      th:'เศร้า',          ex:'Don\'t be sad.'},
-  {id:95, en:'tired',    th:'เหนื่อย',        ex:'I feel tired.'},
-  {id:96, en:'hungry',   th:'หิว',            ex:'I\'m hungry.'},
-  {id:97, en:'full',     th:'อิ่ม',           ex:'I\'m full now.'},
-  {id:98, en:'clean',    th:'สะอาด',          ex:'Keep it clean.'},
-  {id:99, en:'free',     th:'ว่าง / ฟรี',     ex:'Are you free today?'},
-  {id:100,en:'late',     th:'สาย',            ex:'Don\'t be late.'},
-  // ── Essential Words ──
-  {id:101,en:'yes',      th:'ใช่',            ex:'Yes, I agree.'},
-  {id:102,en:'no',       th:'ไม่',            ex:'No, thank you.'},
-  {id:103,en:'please',   th:'กรุณา',          ex:'Please help me.'},
-  {id:104,en:'sorry',    th:'ขอโทษ',          ex:'I\'m sorry.'},
-  {id:105,en:'thank you',th:'ขอบคุณ',         ex:'Thank you very much.'},
-  {id:106,en:'hello',    th:'สวัสดี',         ex:'Hello! How are you?'},
-  {id:107,en:'bye',      th:'ลาก่อน',         ex:'Bye! See you soon.'},
-  {id:108,en:'okay',     th:'โอเค / ได้',     ex:'Okay, let\'s go.'},
-  {id:109,en:'right',    th:'ถูกต้อง',        ex:'You are right.'},
-  {id:110,en:'wrong',    th:'ผิด',            ex:'That\'s wrong.'},
-  {id:111,en:'here',     th:'ที่นี่',         ex:'Come here.'},
-  {id:112,en:'there',    th:'ที่นั่น',        ex:'Look there.'},
-  {id:113,en:'now',      th:'ตอนนี้',         ex:'Do it now.'},
-  {id:114,en:'later',    th:'ทีหลัง',         ex:'See you later.'},
-  {id:115,en:'today',    th:'วันนี้',         ex:'What day is today?'},
-  {id:116,en:'tomorrow', th:'พรุ่งนี้',       ex:'See you tomorrow.'},
-  {id:117,en:'yesterday',th:'เมื่อวาน',       ex:'I slept well yesterday.'},
-  {id:118,en:'always',   th:'เสมอ',           ex:'Always be kind.'},
-  {id:119,en:'never',    th:'ไม่เคย',         ex:'I never give up.'},
-  {id:120,en:'often',    th:'บ่อยๆ',          ex:'I often exercise.'},
-  {id:121,en:'very',     th:'มาก',            ex:'It\'s very good.'},
-  {id:122,en:'more',     th:'มากกว่า / อีก',  ex:'I need more time.'},
-  {id:123,en:'less',     th:'น้อยกว่า',       ex:'Eat less sugar.'},
-  {id:124,en:'only',     th:'แค่ / เท่านั้น', ex:'Only one more day.'},
-  {id:125,en:'also',     th:'ด้วย / เช่นกัน', ex:'I also like it.'},
-  {id:126,en:'but',      th:'แต่',            ex:'Good but expensive.'},
-  {id:127,en:'because',  th:'เพราะว่า',       ex:'I\'m late because of traffic.'},
-  {id:128,en:'if',       th:'ถ้า',            ex:'If you try, you can.'},
-  {id:129,en:'when',     th:'เมื่อ / เมื่อไหร่',ex:'When do you sleep?'},
-  {id:130,en:'where',    th:'ที่ไหน',         ex:'Where are you?'},
-  {id:131,en:'what',     th:'อะไร',           ex:'What do you want?'},
-  {id:132,en:'who',      th:'ใคร',            ex:'Who is that?'},
-  {id:133,en:'how',      th:'อย่างไร / ยังไง',ex:'How are you?'},
-  {id:134,en:'why',      th:'ทำไม',           ex:'Why are you sad?'},
-  {id:135,en:'every',    th:'ทุก',            ex:'Every day is a gift.'},
-  {id:136,en:'all',      th:'ทั้งหมด',        ex:'I ate all of it.'},
-  {id:137,en:'some',     th:'บาง / บางส่วน',  ex:'Give me some water.'},
-  // ── Time ──
-  {id:138,en:'minute',   th:'นาที',           ex:'Wait five minutes.'},
-  {id:139,en:'hour',     th:'ชั่วโมง',        ex:'One hour left.'},
-  {id:140,en:'second',   th:'วินาที',         ex:'Wait a second.'},
-  // ── Body ──
-  {id:141,en:'eye',      th:'ตา',             ex:'Open your eyes.'},
-  {id:142,en:'hand',     th:'มือ',            ex:'Wash your hands.'},
-  {id:143,en:'head',     th:'หัว',            ex:'My head hurts.'},
-  {id:144,en:'heart',    th:'หัวใจ',          ex:'Follow your heart.'},
-  {id:145,en:'mouth',    th:'ปาก',            ex:'Don\'t talk with your mouth full.'},
-  // ── Tech ──
-  {id:146,en:'app',      th:'แอปพลิเคชัน',    ex:'Download this app.'},
-  {id:147,en:'data',     th:'ข้อมูล',         ex:'Check the data.'},
-  {id:148,en:'online',   th:'ออนไลน์',        ex:'I\'m online now.'},
-  {id:149,en:'message',  th:'ข้อความ',        ex:'Send me a message.'},
-  {id:150,en:'email',    th:'อีเมล',          ex:'Check your email.'},
-  // ── Important adjectives ──
-  {id:151,en:'important',th:'สำคัญ',          ex:'This is very important.'},
-  {id:152,en:'beautiful',th:'สวยงาม',         ex:'What a beautiful day!'},
-  {id:153,en:'strong',   th:'แข็งแรง',        ex:'Stay strong.'},
-  {id:154,en:'smart',    th:'ฉลาด',           ex:'You are very smart.'},
-  {id:155,en:'kind',     th:'ใจดี',           ex:'Be kind to others.'},
-  {id:156,en:'busy',     th:'ยุ่ง',           ex:'I\'m very busy today.'},
-  {id:157,en:'ready',    th:'พร้อม',          ex:'Are you ready?'},
-  {id:158,en:'safe',     th:'ปลอดภัย',        ex:'Stay safe.'},
-  {id:159,en:'sure',     th:'แน่ใจ',          ex:'Are you sure?'},
-  {id:160,en:'different', th:'แตกต่าง',        ex:'We are all different.',   tip:'differ = ต่างกัน → different = สิ่งที่ต่างกัน'},
-  // ── Colors ──
-  {id:161,en:'red',       th:'สีแดง',          ex:'I like red roses.'},
-  {id:162,en:'blue',      th:'สีน้ำเงิน',       ex:'The sky is blue.'},
-  {id:163,en:'green',     th:'สีเขียว',         ex:'Eat more green vegetables.'},
-  {id:164,en:'yellow',    th:'สีเหลือง',        ex:'The sun is yellow.'},
-  {id:165,en:'white',     th:'สีขาว',           ex:'Wear white clothes.'},
-  {id:166,en:'black',     th:'สีดำ',            ex:'I have a black bag.'},
-  {id:167,en:'orange',    th:'สีส้ม',           ex:'Eat an orange every day.'},
-  {id:168,en:'pink',      th:'สีชมพู',          ex:'She loves pink.'},
-  // ── Numbers ──
-  {id:169,en:'four',      th:'สี่',             ex:'I need four chairs.'},
-  {id:170,en:'five',      th:'ห้า',             ex:'Five minutes left.'},
-  {id:171,en:'six',       th:'หก',              ex:'Six days a week.'},
-  {id:172,en:'seven',     th:'เจ็ด',            ex:'Seven days in a week.'},
-  {id:173,en:'eight',     th:'แปด',             ex:'Eight glasses of water.'},
-  {id:174,en:'nine',      th:'เก้า',            ex:'Nine people came.'},
-  {id:175,en:'thousand',  th:'พัน',             ex:'One thousand baht.'},
-  // ── Family ──
-  {id:176,en:'father',    th:'พ่อ',             ex:'My father is kind.'},
-  {id:177,en:'mother',    th:'แม่',             ex:'I love my mother.'},
-  {id:178,en:'brother',   th:'พี่ชาย / น้องชาย',ex:'My brother is tall.'},
-  {id:179,en:'sister',    th:'พี่สาว / น้องสาว', ex:'My sister is smart.'},
-  {id:180,en:'son',       th:'ลูกชาย',          ex:'He has one son.'},
-  {id:181,en:'daughter',  th:'ลูกสาว',          ex:'She has a daughter.'},
-  {id:182,en:'husband',   th:'สามี',            ex:'Her husband is a doctor.'},
-  {id:183,en:'wife',      th:'ภรรยา',           ex:'My wife is a teacher.'},
-  // ── Places ──
-  {id:184,en:'hospital',  th:'โรงพยาบาล',       ex:'Go to the hospital.'},
-  {id:185,en:'bank',      th:'ธนาคาร',          ex:'I need to go to the bank.'},
-  {id:186,en:'market',    th:'ตลาด',            ex:'Buy food at the market.'},
-  {id:187,en:'restaurant',th:'ร้านอาหาร',       ex:'Let\'s eat at a restaurant.'},
-  {id:188,en:'hotel',     th:'โรงแรม',          ex:'Book a hotel room.'},
-  {id:189,en:'office',    th:'สำนักงาน',        ex:'I work in an office.'},
-  {id:190,en:'park',      th:'สวนสาธารณะ',      ex:'Walk in the park.'},
-  {id:191,en:'airport',   th:'สนามบิน',         ex:'Go to the airport.'},
-  {id:192,en:'university',th:'มหาวิทยาลัย',     ex:'I study at a university.'},
-  // ── Food ──
-  {id:193,en:'rice',      th:'ข้าว',            ex:'I eat rice every day.'},
-  {id:194,en:'meat',      th:'เนื้อ',           ex:'I like grilled meat.'},
-  {id:195,en:'fish',      th:'ปลา',             ex:'Eat more fish.'},
-  {id:196,en:'fruit',     th:'ผลไม้',           ex:'Eat fruit every day.'},
-  {id:197,en:'coffee',    th:'กาแฟ',            ex:'I drink coffee every morning.'},
-  {id:198,en:'sugar',     th:'น้ำตาล',          ex:'Less sugar is better.'},
-  // ── More Verbs ──
-  {id:199,en:'stand',     th:'ยืน',             ex:'Stand up please.'},
-  {id:200,en:'sit',       th:'นั่ง',            ex:'Sit down here.'},
-  {id:201,en:'smile',     th:'ยิ้ม',            ex:'Smile every day.'},
-  {id:202,en:'laugh',     th:'หัวเราะ',         ex:'Laugh more often.'},
-  {id:203,en:'cry',       th:'ร้องไห้',         ex:'Don\'t cry.'},
-  {id:204,en:'cook',      th:'ทำอาหาร',         ex:'I cook dinner.'},
-  {id:205,en:'drive',     th:'ขับรถ',           ex:'Drive carefully.'},
-  {id:206,en:'fix',       th:'ซ่อม / แก้ไข',   ex:'Fix the problem.'},
-  {id:207,en:'check',     th:'ตรวจสอบ',         ex:'Check your work.'},
-  {id:208,en:'choose',    th:'เลือก',           ex:'Choose wisely.'},
-  {id:209,en:'share',     th:'แบ่งปัน',         ex:'Share your food.'},
-  {id:210,en:'save',      th:'บันทึก / เซฟ',    ex:'Save your work.'},
-  {id:211,en:'send',      th:'ส่ง',             ex:'Send me the file.'},
-  {id:212,en:'receive',   th:'รับ',             ex:'Receive the package.'},
-  {id:213,en:'return',    th:'คืน / กลับ',      ex:'Return the book.'},
-  {id:214,en:'change',    th:'เปลี่ยน',         ex:'Change your habits.'},
-  {id:215,en:'keep',      th:'เก็บ / รักษา',    ex:'Keep it safe.'},
-  {id:216,en:'improve',   th:'พัฒนา / ดีขึ้น',  ex:'Improve every day.',    tip:'im + prove → พิสูจน์ว่าดีขึ้น'},
-  {id:217,en:'practice',  th:'ฝึกซ้อม',         ex:'Practice makes perfect.'},
-  {id:218,en:'understand',th:'เข้าใจ',          ex:'Do you understand?',    tip:'under + stand = ยืนอยู่ใต้ความรู้ → เข้าใจลึกซึ้ง'},
-  {id:219,en:'explain',   th:'อธิบาย',          ex:'Please explain this.'},
-  {id:220,en:'accept',    th:'ยอมรับ',          ex:'Accept the challenge.'},
-  {id:221,en:'decide',    th:'ตัดสินใจ',        ex:'Decide quickly.',        tip:'de + cide → ตัด (cide) ทิ้ง → ตัดสินใจ'},
-  {id:222,en:'achieve',   th:'บรรลุ / ทำสำเร็จ',ex:'Achieve your goals.'},
-  {id:223,en:'fail',      th:'ล้มเหลว',         ex:'It\'s okay to fail.'},
-  {id:224,en:'succeed',   th:'ประสบความสำเร็จ', ex:'Work hard to succeed.'},
-  {id:225,en:'believe',   th:'เชื่อ',           ex:'Believe in yourself.'},
-  // ── More Adjectives ──
-  {id:226,en:'long',      th:'ยาว',             ex:'A long road.'},
-  {id:227,en:'short',     th:'สั้น / เตี้ย',    ex:'A short break.'},
-  {id:228,en:'tall',      th:'สูง (คน)',         ex:'He is very tall.'},
-  {id:229,en:'interesting',th:'น่าสนใจ',        ex:'This is interesting.'},
-  {id:230,en:'boring',    th:'น่าเบื่อ',         ex:'Don\'t be boring.'},
-  {id:231,en:'correct',   th:'ถูกต้อง',          ex:'That answer is correct.'},
-  {id:232,en:'possible',  th:'เป็นไปได้',        ex:'Anything is possible.'},
-  {id:233,en:'difficult', th:'ยาก',             ex:'It\'s difficult but possible.'},
-  {id:234,en:'simple',    th:'ง่าย / เรียบง่าย', ex:'Keep it simple.'},
-  {id:235,en:'special',   th:'พิเศษ',           ex:'You are special.'},
-  {id:236,en:'normal',    th:'ปกติ',            ex:'This is normal.'},
-  {id:237,en:'perfect',   th:'สมบูรณ์แบบ',      ex:'Nothing is perfect.'},
-  {id:238,en:'enough',    th:'พอแล้ว',          ex:'That\'s enough.'},
-  {id:239,en:'useful',    th:'มีประโยชน์',       ex:'This app is useful.'},
-  {id:240,en:'popular',   th:'ได้รับความนิยม',   ex:'This song is popular.'},
-  // ── Engineering / Tech ──
-  {id:241,en:'robot',     th:'หุ่นยนต์',         ex:'Build a robot.'},
-  {id:242,en:'machine',   th:'เครื่องจักร',      ex:'The machine broke down.'},
-  {id:243,en:'computer',  th:'คอมพิวเตอร์',      ex:'Use a computer.'},
-  {id:244,en:'software',  th:'ซอฟต์แวร์',        ex:'Update your software.'},
-  {id:245,en:'battery',   th:'แบตเตอรี่',        ex:'Battery is low.'},
-  {id:246,en:'screen',    th:'หน้าจอ',           ex:'Clean your screen.'},
-  {id:247,en:'sensor',    th:'เซนเซอร์',         ex:'The sensor detected it.'},
-  {id:248,en:'signal',    th:'สัญญาณ',           ex:'No signal here.'},
-  {id:249,en:'connect',   th:'เชื่อมต่อ',         ex:'Connect to WiFi.'},
-  {id:250,en:'control',   th:'ควบคุม',           ex:'Control the robot.'},
-  // ── Academic ──
-  {id:251,en:'exam',      th:'สอบ',             ex:'Prepare for the exam.'},
-  {id:252,en:'score',     th:'คะแนน',           ex:'Get a good score.'},
-  {id:253,en:'project',   th:'โปรเจกต์',         ex:'Work on your project.'},
-  {id:254,en:'research',  th:'วิจัย',            ex:'Do your research.'},
-  {id:255,en:'design',    th:'ออกแบบ',           ex:'Design a system.'},
-  {id:256,en:'build',     th:'สร้าง / บิ้วด์',   ex:'Build something great.'},
-  {id:257,en:'test',      th:'ทดสอบ',            ex:'Test the system.'},
-  {id:258,en:'result',    th:'ผลลัพธ์',          ex:'Check the result.'},
-  {id:259,en:'problem',   th:'ปัญหา',            ex:'Solve the problem.'},
-  {id:260,en:'solution',  th:'วิธีแก้ปัญหา',     ex:'Find a solution.'},
-  // ── Finance ──
-  {id:261,en:'invest',    th:'ลงทุน',            ex:'Invest wisely.'},
-  {id:262,en:'profit',    th:'กำไร',             ex:'Make a profit.'},
-  {id:263,en:'loss',      th:'ขาดทุน',           ex:'Cut your loss.'},
-  {id:264,en:'stock',     th:'หุ้น',             ex:'Buy the stock.'},
-  {id:265,en:'portfolio', th:'พอร์ตการลงทุน',    ex:'Build your portfolio.'},
-  {id:266,en:'market',    th:'ตลาด',             ex:'The market is up today.'},
-  {id:267,en:'price',     th:'ราคา',             ex:'The price dropped.'},
-  {id:268,en:'cost',      th:'ต้นทุน',           ex:'Cut the cost.'},
-  {id:269,en:'growth',    th:'การเติบโต',        ex:'Strong growth this year.'},
-  {id:270,en:'risk',      th:'ความเสี่ยง',       ex:'Manage your risk.'},
-  // ── Common expressions ──
-  {id:271,en:'of course', th:'แน่นอน',           ex:'Of course I can help.'},
-  {id:272,en:'no problem',th:'ไม่มีปัญหา',       ex:'No problem at all.'},
-  {id:273,en:'I see',     th:'เข้าใจแล้ว',       ex:'I see what you mean.'},
-  {id:274,en:'really',    th:'จริงๆ / จริงๆ เหรอ',ex:'Really? That\'s great!'},
-  {id:275,en:'maybe',     th:'อาจจะ',            ex:'Maybe tomorrow.'},
-  {id:276,en:'almost',    th:'เกือบ',            ex:'Almost done!'},
-  {id:277,en:'already',   th:'แล้ว',             ex:'I already ate.'},
-  {id:278,en:'still',     th:'ยังอยู่ / ยังคง',  ex:'I\'m still learning.'},
-  {id:279,en:'again',     th:'อีกครั้ง',         ex:'Try again.'},
-  {id:280,en:'together',  th:'ด้วยกัน',          ex:'We do it together.'},
-  // ── Hard words with tips ──
-  {id:281,en:'effort',    th:'ความพยายาม',       ex:'Put in the effort.',    tip:'ef + fort → fort = ป้อมปราการ → ต้องใช้กำลังเหมือนบุกป้อม'},
-  {id:282,en:'experience',th:'ประสบการณ์',       ex:'Learn from experience.', tip:'ex + perience → สิ่งที่ผ่านออกมา (ex = ออก) จากการลอง'},
-  {id:283,en:'opportunity',th:'โอกาส',           ex:'Don\'t miss this opportunity.', tip:'oppor + tunity → นึกถึง "อ๊อปจูน" โอกาสที่มาพร้อมจังหวะ'},
-  {id:284,en:'challenge', th:'ความท้าทาย',       ex:'Accept the challenge.',  tip:'นึกถึง "แชลเลนจ์" เหมือนคำที่ไทยทับศัพท์อยู่แล้ว'},
-  {id:285,en:'confidence',th:'ความมั่นใจ',       ex:'Have confidence in yourself.', tip:'con + fidence → fide = ความเชื่อมั่น (confident = เชื่อมั่นในตัวเอง)'},
-  {id:286,en:'responsible',th:'รับผิดชอบ',       ex:'Be responsible.',        tip:'response + ible → ตอบสนอง (response) ได้ = รับผิดชอบ'},
-  {id:287,en:'concentrate',th:'มีสมาธิ',         ex:'Concentrate on your work.', tip:'con + centre → ทุกอย่างอยู่ที่ศูนย์กลาง (centre) = มีสมาธิ'},
-  {id:288,en:'communicate',th:'สื่อสาร',         ex:'Communicate clearly.',   tip:'communi + cate → community = ชุมชน → การสื่อสารกัน'},
-  {id:289,en:'organize',  th:'จัดระเบียบ',       ex:'Organize your time.',    tip:'organ = อวัยวะ → จัดให้ทุกส่วนทำงานร่วมกันดี'},
-  {id:290,en:'analyze',   th:'วิเคราะห์',        ex:'Analyze the data.',      tip:'ana + lyze → แยก (lyze) ออกมาดูทีละส่วน'},
-  {id:291,en:'priority',  th:'สิ่งที่สำคัญที่สุด',ex:'Set your priority.',    tip:'prior = ก่อนหน้า → สิ่งที่ต้องทำก่อน = ความสำคัญ'},
-  {id:292,en:'discipline',th:'วินัย',            ex:'Discipline is the key.',  tip:'disci + pline → นึกถึง "ดิสซิพลิน" ฟังดูเหมือนคนที่มีวินัยเดินตรง'},
-  {id:293,en:'consistent',th:'สม่ำเสมอ',         ex:'Be consistent every day.',tip:'con + sist + ent → ยืนหยัด (sist) อยู่กับมัน = ทำสม่ำเสมอ'},
-  {id:294,en:'efficient', th:'มีประสิทธิภาพ',    ex:'Work efficiently.',       tip:'effici + ent → effect = ผล → ได้ผลดีโดยใช้ทรัพยากรน้อย'},
-  {id:295,en:'strategy',  th:'กลยุทธ์',          ex:'Plan your strategy.',    tip:'strateg + y → "สตราทีจี้" ไทยทับศัพท์ว่า strategy อยู่แล้ว'},
-  {id:296,en:'progress',  th:'ความก้าวหน้า',     ex:'Track your progress.',   tip:'pro + gress → gress = เดิน, pro = ไปข้างหน้า → เดินหน้า'},
-  {id:297,en:'routine',   th:'กิจวัตร',          ex:'Build a morning routine.',tip:'route + ine → เส้นทาง (route) ที่ทำซ้ำทุกวัน'},
-  {id:298,en:'motivation',th:'แรงจูงใจ',         ex:'Find your motivation.',  tip:'motive = เหตุผล → motivation = สิ่งที่ขับเคลื่อนให้ลงมือทำ'},
-  {id:299,en:'patience',  th:'ความอดทน',         ex:'Have patience.',         tip:'patient = คนไข้ที่รอหมอ → ต้องอดทนรอ'},
-  {id:300,en:'grateful',  th:'รู้สึกขอบคุณ',     ex:'Be grateful every day.', tip:'grate + ful → เต็มไปด้วย (ful) ความรู้สึกขอบคุณ'},
-];
+let VOCAB_WORDS = [];
+const WORDS_CACHE_KEY = 'ltd-words-v1';
+
+async function loadWords() {
+  // Use cache first for instant startup
+  try {
+    const cached = JSON.parse(localStorage.getItem(WORDS_CACHE_KEY) || 'null');
+    if (Array.isArray(cached) && cached.length > 0) VOCAB_WORDS = cached;
+  } catch {}
+
+  // Always fetch latest in background
+  try {
+    const res = await fetch('./words.json');
+    if (res.ok) {
+      const words = await res.json();
+      if (Array.isArray(words) && words.length > 0) {
+        VOCAB_WORDS = words;
+        localStorage.setItem(WORDS_CACHE_KEY, JSON.stringify(words));
+      }
+    }
+  } catch {}
+}
+
 const GOOGLE_CLIENT_ID = '125209458743-96tf37mk9j35sjnb3e46pe41o0d34buc.apps.googleusercontent.com';
 
 const MOODS = { 1:'😴 ง่วง', 2:'😕 แย่', 3:'😐 ปกติ', 4:'🙂 ดี', 5:'😄 ดีมาก' };
@@ -1574,6 +1275,17 @@ function _wrongChoices(word) {
 }
 
 function renderVocab() {
+  if (VOCAB_WORDS.length === 0) {
+    document.getElementById('vocab-overview').style.display = 'block';
+    document.getElementById('vocab-quiz').style.display    = 'none';
+    document.getElementById('vocab-content').innerHTML = `
+      <div class="card" style="text-align:center;padding:32px 16px">
+        <div style="font-size:40px;margin-bottom:10px">⏳</div>
+        <div style="color:var(--muted);font-size:14px">กำลังโหลดคำศัพท์...<br>รอสักครู่แล้วลองอีกครั้ง</div>
+      </div>`;
+    setTimeout(renderVocab, 1200);
+    return;
+  }
   const state = loadVocabState();
   const mastered = Object.values(state).filter(s => s.level >= 5).length;
   const learned  = Object.keys(state).filter(k => !k.startsWith('_')).length;
@@ -1774,6 +1486,7 @@ function _downloadLog(date, content) {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 
 async function init() {
+  loadWords();
   data = loadData();
   renderHome();
 

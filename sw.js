@@ -1,5 +1,5 @@
-const CACHE = 'ltd-daily-v11';
-const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon.svg'];
+const CACHE = 'ltd-daily-v12';
+const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon.svg', './words.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
