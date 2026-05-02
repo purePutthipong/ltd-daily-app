@@ -1,6 +1,7 @@
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
 const STORAGE_KEY    = 'ltd-daily-v1';
+const COST_KEY       = 'ltd-costbasis';
 const MAX_WATER      = 8;
 const GOOGLE_CLIENT_ID = '125209458743-96tf37mk9j35sjnb3e46pe41o0d34buc.apps.googleusercontent.com';
 
@@ -27,6 +28,14 @@ function loadData() {
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadCostBasis() {
+  try { return JSON.parse(localStorage.getItem(COST_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveCostBasis(cb) {
+  localStorage.setItem(COST_KEY, JSON.stringify(cb));
 }
 
 // ─── DATE HELPERS ─────────────────────────────────────────────────────────────
@@ -68,6 +77,34 @@ function getLog(date) {
   return data[date];
 }
 
+// ─── STREAKS ─────────────────────────────────────────────────────────────────
+
+function calcStreaks() {
+  const d = new Date();
+  const dates = [];
+  for (let i = 0; i < 60; i++) {
+    dates.push(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`);
+    d.setDate(d.getDate() - 1);
+  }
+
+  function streak(fn) {
+    let count = 0;
+    for (const date of dates) {
+      const log = data[date];
+      if (!log || !fn(log)) break;
+      count++;
+    }
+    return count;
+  }
+
+  return {
+    log:      streak(log => (log.morning?.mood > 0 || !!log.morning?.wakeTime) &&
+                            (log.night?.energy > 0 || !!log.night?.sleepTime)),
+    water:    streak(log => (log.water || 0) >= 6),
+    exercise: streak(log => log.exercise === true)
+  };
+}
+
 // ─── RENDER HOME ─────────────────────────────────────────────────────────────
 
 function renderHome() {
@@ -77,6 +114,17 @@ function renderHome() {
 
   document.getElementById('date-day').textContent  = day;
   document.getElementById('date-full').textContent = full;
+
+  // Streaks
+  const st = calcStreaks();
+  const pills = [
+    { label: 'Log',   val: st.log,      icon: '📝' },
+    { label: 'น้ำ',   val: st.water,    icon: '💧' },
+    { label: 'ออกกำลัง', val: st.exercise, icon: '🏃' }
+  ].filter(p => p.val > 0);
+  document.getElementById('streak-row').innerHTML = pills.length
+    ? pills.map(p => `<div class="streak-pill">🔥 ${p.val} <span class="streak-unit">วัน</span> ${p.icon} ${p.label}</div>`).join('')
+    : '';
 
   // Water dots
   const dotsEl = document.getElementById('water-dots');
@@ -429,6 +477,42 @@ function analyzeSleep() {
   return { avgDuration, avgWakeMins, wakeStdDev, lateNights, count: withData.length };
 }
 
+function calcSleepScore(analysis) {
+  if (!analysis || analysis.count < 2) return null;
+  let score = 0;
+
+  // Duration 0-30 pts
+  const dur = analysis.avgDuration;
+  if (dur >= 7 && dur <= 9)       score += 30;
+  else if (dur >= 6 || dur <= 10) score += 18;
+  else                             score += 6;
+
+  // Consistency 0-30 pts
+  const std = analysis.wakeStdDev;
+  if (std < 15)      score += 30;
+  else if (std < 30) score += 22;
+  else if (std < 45) score += 14;
+  else if (std < 60) score += 6;
+
+  // Late nights 0-20 pts
+  const lateRatio = analysis.lateNights / analysis.count;
+  if (lateRatio === 0)      score += 20;
+  else if (lateRatio < 0.2) score += 13;
+  else if (lateRatio < 0.5) score += 6;
+
+  // Avg mood 0-20 pts
+  const dates7 = Object.keys(data).sort((a, b) => b.localeCompare(a)).slice(0, 7);
+  const moods = dates7.map(d => data[d]?.morning?.mood || 0).filter(m => m > 0);
+  if (moods.length) {
+    const avg = moods.reduce((s, m) => s + m, 0) / moods.length;
+    score += Math.round((avg / 5) * 20);
+  } else {
+    score += 10;
+  }
+
+  return Math.min(100, Math.round(score));
+}
+
 function formatMins(mins) {
   if (mins === null || mins === undefined) return '-';
   const h = Math.floor(mins / 60) % 24;
@@ -496,7 +580,24 @@ function renderInsights() {
   const container   = document.getElementById('insights-content');
   const analysis    = analyzeSleep();
   const personalTips = generatePersonalTips(analysis);
+  const score       = calcSleepScore(analysis);
   let html = '';
+
+  // Sleep Score
+  if (score !== null) {
+    const grade = score >= 85 ? 'A' : score >= 70 ? 'B' : score >= 55 ? 'C' : 'D';
+    const scoreColor = score >= 85 ? '#3fb950' : score >= 70 ? '#7ee787' : score >= 55 ? '#e3a008' : '#f85149';
+    const scoreDesc = score >= 85 ? 'ยอดเยี่ยม' : score >= 70 ? 'ดี' : score >= 55 ? 'พอใช้' : 'ต้องปรับ';
+    html += `
+      <div class="card sleep-score-card">
+        <div class="score-wrap">
+          <div class="score-num" style="color:${scoreColor}">${score}</div>
+          <div class="score-grade" style="color:${scoreColor}">${grade}</div>
+        </div>
+        <div class="score-label">Sleep Score · ${scoreDesc}</div>
+        <div class="score-bar-wrap"><div class="score-bar" style="width:${score}%;background:${scoreColor}"></div></div>
+      </div>`;
+  }
 
   // Stats card
   if (analysis) {
@@ -844,6 +945,19 @@ function fngGauge(value) {
 
 // ── Render functions ──
 
+function editCostBasis(symbol) {
+  const cb = loadCostBasis();
+  const current = cb[symbol] ? cb[symbol].toFixed(2) : '';
+  const val = prompt(`ราคาทุน ${symbol} (USD):`, current);
+  if (val === null) return;
+  const num = parseFloat(val);
+  if (!isNaN(num) && num > 0) {
+    cb[symbol] = num;
+    saveCostBasis(cb);
+    renderPortfolio(true);
+  }
+}
+
 function renderStockCard({ symbol, name, alloc }, stock) {
   const { price, change, rsi, vsMA, spark, signal } = stock;
   const changeColor = change >= 0 ? '#3fb950' : '#f85149';
@@ -857,6 +971,24 @@ function renderStockCard({ symbol, name, alloc }, stock) {
     SKIP: { color: '#f85149', bg: 'rgba(248,81,73,0.13)',  text: '🔴 SKIP' },
   }[signal.signal];
 
+  const isGrowth = PORTFOLIO.growth.some(s => s.symbol === symbol);
+  let pnlRow = '';
+  if (isGrowth) {
+    const cb = loadCostBasis();
+    if (cb[symbol]) {
+      const pnl = ((price - cb[symbol]) / cb[symbol]) * 100;
+      const pnlColor = pnl >= 0 ? '#3fb950' : '#f85149';
+      pnlRow = `
+        <div class="pnl-row">
+          <span class="pnl-label">จากทุน $${cb[symbol].toFixed(2)}</span>
+          <span class="pnl-val" style="color:${pnlColor}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(1)}%</span>
+          <button class="btn-edit-cost" onclick="editCostBasis('${symbol}')">✏️</button>
+        </div>`;
+    } else {
+      pnlRow = `<button class="btn-set-cost" onclick="editCostBasis('${symbol}')">+ ใส่ราคาทุน</button>`;
+    }
+  }
+
   return `
     <div class="stock-card">
       <div class="stock-header">
@@ -868,6 +1000,7 @@ function renderStockCard({ symbol, name, alloc }, stock) {
       </div>
       <div class="stock-price">$${price.toFixed(2)}</div>
       <div class="stock-change" style="color:${changeColor}">${changeSign}${change.toFixed(2)}%</div>
+      ${pnlRow}
       <div class="sparkline-wrap">${sparkline(spark)}</div>
       <div class="stock-indicators">
         <div class="ind-row">
@@ -1015,6 +1148,60 @@ async function renderPortfolio(forceRefresh = false) {
         <button class="btn-refresh" style="margin-top:16px" onclick="renderPortfolio(true)">🔄 ลองใหม่</button>
       </div>`;
   }
+}
+
+// ─── EXPORT ──────────────────────────────────────────────────────────────────
+
+function exportTodayLog() {
+  const today = getToday();
+  const log = data[today];
+  if (!log) { showToast('ยังไม่มีข้อมูลวันนี้'); return; }
+
+  const { day } = formatDate(today);
+  const m = log.morning || {};
+  const n = log.night   || {};
+
+  const taskLines = (m.tasks || []).map((t, i) => {
+    if (!t.trim()) return null;
+    const done = (m.tasksDone || [])[i];
+    return `- [${done ? 'x' : ' '}] ${t}`;
+  }).filter(Boolean);
+
+  const md = [
+    `# ${today} (${day})`,
+    ``,
+    `## Morning`,
+    `- ตื่น: ${m.wakeTime || '-'}`,
+    `- Mood: ${m.mood ? MOODS[m.mood] : '-'}`,
+    ``,
+    `### Tasks`,
+    taskLines.length ? taskLines.join('\n') : `- (ไม่มี task)`,
+    ``,
+    `## Health`,
+    `- 💧 น้ำ: ${log.water || 0}/${MAX_WATER} แก้ว`,
+    `- 🏃 ออกกำลังกาย: ${log.exercise ? '✅' : '❌'}`,
+    ``,
+    `## Night`,
+    `- นอน: ${n.sleepTime || '-'}`,
+    `- Energy: ${n.energy ? `${n.energy}/5` : '-'}`,
+    `- Reflection: ${n.reflection || '-'}`,
+  ].join('\n');
+
+  if (navigator.share) {
+    navigator.share({ title: `LTD Log ${today}`, text: md }).catch(() => _downloadLog(today, md));
+  } else {
+    _downloadLog(today, md);
+  }
+}
+
+function _downloadLog(date, content) {
+  const blob = new Blob([content], { type: 'text/markdown' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${date}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
