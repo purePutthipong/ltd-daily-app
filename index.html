@@ -70,6 +70,12 @@
         <div id="history-list"></div>
       </div>
 
+      <!-- INSIGHTS VIEW -->
+      <div id="view-insights" class="view">
+        <div class="section-title">💤 Sleep Insights</div>
+        <div id="insights-content"></div>
+      </div>
+
     </div>
 
     <!-- ─── BOTTOM NAV ─── -->
@@ -77,6 +83,10 @@
       <button class="nav-btn active" id="nav-home" onclick="switchTab('home')">
         <span class="nav-icon">🏠</span>
         <span>วันนี้</span>
+      </button>
+      <button class="nav-btn" id="nav-insights" onclick="switchTab('insights')">
+        <span class="nav-icon">💤</span>
+        <span>Insights</span>
       </button>
       <button class="nav-btn" id="nav-history" onclick="switchTab('history')">
         <span class="nav-icon">📋</span>
@@ -111,9 +121,9 @@
       <div class="form-group">
         <label class="form-label">Tasks วันนี้</label>
         <div class="task-list">
-          <div class="task-row"><span class="task-num">1.</span><input type="text" class="form-input" id="task-1" placeholder="Task แรก"></div>
-          <div class="task-row"><span class="task-num">2.</span><input type="text" class="form-input" id="task-2" placeholder="Task สอง"></div>
-          <div class="task-row"><span class="task-num">3.</span><input type="text" class="form-input" id="task-3" placeholder="Task สาม"></div>
+          <div class="task-row"><button class="task-cb" id="tcb-0" onclick="toggleTaskCb(0)">○</button><input type="text" class="form-input" id="task-1" placeholder="Task แรก"></div>
+          <div class="task-row"><button class="task-cb" id="tcb-1" onclick="toggleTaskCb(1)">○</button><input type="text" class="form-input" id="task-2" placeholder="Task สอง"></div>
+          <div class="task-row"><button class="task-cb" id="tcb-2" onclick="toggleTaskCb(2)">○</button><input type="text" class="form-input" id="task-3" placeholder="Task สาม"></div>
         </div>
       </div>
       <button class="btn-save" onclick="saveMorning()">บันทึก Morning</button>

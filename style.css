@@ -370,11 +370,26 @@ textarea.form-input {
   gap: 10px;
 }
 
-.task-num {
-  font-size: 13px;
-  color: var(--muted);
-  width: 18px;
+.task-cb {
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
+  background: var(--elevated);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-family: inherit;
+  line-height: 1;
+}
+.task-cb.checked {
+  background: rgba(63, 185, 80, 0.15);
+  border-color: var(--green);
 }
 
 .sub-text {
@@ -501,6 +516,72 @@ textarea.form-input {
 .btn-calendar:active {
   border-color: var(--blue);
   color: var(--blue);
+}
+
+/* ─── INSIGHTS ─── */
+
+.insights-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 18px 0 8px;
+}
+
+.stat-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.stat-box {
+  flex: 1;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 6px;
+  text-align: center;
+}
+.stat-ok   { border-color: var(--green); }
+.stat-warn { border-color: #e3a008; }
+.stat-info { border-color: var(--blue); }
+
+.stat-val {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.stat-unit  { font-size: 11px; font-weight: 400; color: var(--muted); }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.tip-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.tip-warn { border-left-color: #e3a008; }
+.tip-info { border-left-color: var(--blue); }
+
+.tip-header {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.tip-detail {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.tip-action {
+  font-size: 13px;
+  color: var(--green);
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 /* ─── EMPTY STATE ─── */

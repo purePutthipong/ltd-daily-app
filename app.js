@@ -60,10 +60,11 @@ function getLog(date) {
       date,
       water:    0,
       exercise: false,
-      morning:  { wakeTime: '', mood: 0, tasks: ['', '', ''] },
+      morning:  { wakeTime: '', mood: 0, tasks: ['', '', ''], tasksDone: [false, false, false] },
       night:    { sleepTime: '', energy: 0, reflection: '' }
     };
   }
+  if (!data[date].morning.tasksDone) data[date].morning.tasksDone = [false, false, false];
   return data[date];
 }
 
@@ -104,7 +105,10 @@ function renderHome() {
     if (log.morning.wakeTime) parts.push(`ตื่น ${log.morning.wakeTime}`);
     if (log.morning.mood)     parts.push(MOODS[log.morning.mood]);
     const tasks = log.morning.tasks.filter(t => t.trim());
-    if (tasks.length)         parts.push(`${tasks.length} task`);
+    if (tasks.length) {
+      const doneCount = (log.morning.tasksDone || []).filter((d, i) => d && log.morning.tasks[i].trim()).length;
+      parts.push(`${doneCount}/${tasks.length} task ✅`);
+    }
     mPreview.textContent = parts.join('  ·  ');
   } else {
     mPreview.textContent = 'ยังไม่ได้บันทึก';
@@ -177,6 +181,7 @@ function openOverlay(name) {
     document.getElementById('task-3').value    = log.morning.tasks[2] || '';
     currentMood = log.morning.mood;
     syncMoodUI();
+    syncTaskCbUI(log);
     document.getElementById('overlay-morning').classList.add('open');
   } else {
     document.getElementById('sleep-time').value  = log.night.sleepTime || '';
@@ -221,13 +226,14 @@ function syncEnergyUI() {
 
 function saveMorning() {
   const log = getLog(getToday());
-  log.morning.wakeTime = document.getElementById('wake-time').value;
-  log.morning.mood     = currentMood;
-  log.morning.tasks    = [
+  log.morning.wakeTime  = document.getElementById('wake-time').value;
+  log.morning.mood      = currentMood;
+  log.morning.tasks     = [
     document.getElementById('task-1').value.trim(),
     document.getElementById('task-2').value.trim(),
     document.getElementById('task-3').value.trim()
   ];
+  // preserve tasksDone as-is (already updated by toggleTaskCb)
   save();
   closeOverlay();
   renderHome();
@@ -252,7 +258,8 @@ function switchTab(tab) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`view-${tab}`).classList.add('active');
   document.getElementById(`nav-${tab}`).classList.add('active');
-  if (tab === 'history') renderHistory();
+  if (tab === 'history')  renderHistory();
+  if (tab === 'insights') renderInsights();
 }
 
 // ─── HISTORY ─────────────────────────────────────────────────────────────────
@@ -350,6 +357,201 @@ function showToast(msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ─── TASK COMPLETION ─────────────────────────────────────────────────────────
+
+function toggleTaskCb(idx) {
+  const log = getLog(getToday());
+  log.morning.tasksDone[idx] = !log.morning.tasksDone[idx];
+  save();
+  syncTaskCbUI(log);
+  renderHome();
+}
+
+function syncTaskCbUI(log) {
+  const done = log.morning.tasksDone || [false, false, false];
+  [0, 1, 2].forEach(i => {
+    const btn = document.getElementById(`tcb-${i}`);
+    const inp = document.getElementById(`task-${i + 1}`);
+    if (!btn) return;
+    btn.textContent = done[i] ? '✅' : '○';
+    btn.classList.toggle('checked', done[i]);
+    if (inp) inp.style.textDecoration = done[i] ? 'line-through' : 'none';
+    if (inp) inp.style.color = done[i] ? 'var(--muted)' : '';
+  });
+}
+
+// ─── SLEEP ANALYSIS ───────────────────────────────────────────────────────────
+
+function analyzeSleep() {
+  const dates = Object.keys(data).sort((a, b) => b.localeCompare(a)).slice(0, 7);
+  const entries = dates.map(date => {
+    const log    = data[date];
+    const sleepT = log.night?.sleepTime;
+    const wakeT  = log.morning?.wakeTime;
+    let duration = null, sleepHour = null;
+
+    if (sleepT && wakeT) {
+      const [sh, sm] = sleepT.split(':').map(Number);
+      const [wh, wm] = wakeT.split(':').map(Number);
+      const sleepMins = sh * 60 + sm;
+      const wakeMins  = wh * 60 + wm;
+      duration  = wakeMins >= sleepMins
+        ? (wakeMins - sleepMins) / 60
+        : (1440 - sleepMins + wakeMins) / 60;
+      sleepHour = sh;
+    }
+    return { date, duration, sleepHour, wakeTime: wakeT, energy: log.night?.energy || 0 };
+  });
+
+  const withData = entries.filter(e => e.duration !== null && e.duration > 2 && e.duration < 16);
+  if (!withData.length) return null;
+
+  const avgDuration = withData.reduce((s, e) => s + e.duration, 0) / withData.length;
+
+  const wakeMinsArr = entries.filter(e => e.wakeTime).map(e => {
+    const [h, m] = e.wakeTime.split(':').map(Number);
+    return h * 60 + m;
+  });
+  const avgWakeMins = wakeMinsArr.length
+    ? wakeMinsArr.reduce((s, m) => s + m, 0) / wakeMinsArr.length : null;
+  const wakeVariance = wakeMinsArr.length > 1
+    ? wakeMinsArr.reduce((s, m) => s + Math.pow(m - avgWakeMins, 2), 0) / wakeMinsArr.length : 0;
+  const wakeStdDev = Math.sqrt(wakeVariance);
+
+  // past midnight = sleep hour 0-4
+  const lateNights = withData.filter(e => e.sleepHour !== null && e.sleepHour < 5).length;
+
+  return { avgDuration, avgWakeMins, wakeStdDev, lateNights, count: withData.length };
+}
+
+function formatMins(mins) {
+  if (mins === null || mins === undefined) return '-';
+  const h = Math.floor(mins / 60) % 24;
+  const m = Math.round(mins % 60);
+  return `${pad(h)}:${pad(m)}`;
+}
+
+function generatePersonalTips(a) {
+  if (!a || a.count < 2) return [];
+  const tips = [];
+
+  if (a.avgDuration < 7) {
+    tips.push({ level: 'warn', icon: '⏰', title: 'นอนน้อยเกินไป',
+      detail: `เฉลี่ย ${a.avgDuration.toFixed(1)} ชม./คืน — เป้าหมายควรเป็น 7-9 ชม.`,
+      action: 'ลองนอนเร็วขึ้น 30 นาที ทดลองต่อเนื่อง 1 สัปดาห์' });
+  } else if (a.avgDuration > 9) {
+    tips.push({ level: 'info', icon: '⏰', title: 'นอนนานเกินไป',
+      detail: `เฉลี่ย ${a.avgDuration.toFixed(1)} ชม./คืน`,
+      action: 'นอนมากเกินไปอาจทำให้ง่วงกลางวัน ลองลดเป็น 7-8 ชม.' });
+  }
+
+  if (a.lateNights >= 3) {
+    tips.push({ level: 'warn', icon: '🌙', title: 'นอนดึกบ่อย',
+      detail: `${a.lateNights} ใน ${a.count} คืน นอนหลังเที่ยงคืน`,
+      action: 'ตั้งเป้าเข้านอนก่อน 23:30 — ร่างกายหลั่ง melatonin สูงสุดช่วง 22-23 น.' });
+  }
+
+  if (a.wakeStdDev > 60) {
+    tips.push({ level: 'warn', icon: '📅', title: 'เวลาตื่นไม่สม่ำเสมอ',
+      detail: `เวลาตื่นต่างกันเฉลี่ย ${Math.round(a.wakeStdDev)} นาที`,
+      action: 'ตื่นเวลาเดิมทุกวัน (รวมวันหยุด) — Matthew Walker: "Regularity is king"' });
+  } else if (a.wakeStdDev > 30) {
+    tips.push({ level: 'info', icon: '📅', title: 'เวลาตื่นยังไม่นิ่งพอ',
+      detail: `เวลาตื่นต่างกัน ${Math.round(a.wakeStdDev)} นาที`,
+      action: 'พยายามให้เวลาตื่นต่างกันไม่เกิน 30 นาทีในแต่ละวัน' });
+  }
+
+  return tips;
+}
+
+const SLEEP_TIPS = [
+  { icon: '🌅', title: 'รับแสงแดดเช้าภายใน 1 ชั่วโมงแรก',
+    detail: 'แสงแดดช่วง 7-9 น. reset circadian clock ให้แม่นยำ ทำให้ง่วงตรงเวลาตอนกลางคืน',
+    action: 'เปิดม่านหรือออกไปข้างนอกหลังตื่นทันที แม้แค่ 10 นาที' },
+  { icon: '📱', title: 'ลดหน้าจอก่อนนอน 30-60 นาที',
+    detail: 'แสงสีฟ้าจากมือถือกด melatonin ได้นานถึง 3 ชม. ทำให้นอนหลับยากขึ้น',
+    action: 'ตั้ง Do Not Disturb และวางมือถือไว้นอกห้องนอน หรือเปิด Night Mode' },
+  { icon: '🌡️', title: 'ห้องเย็น = นอนหลับดีกว่า',
+    detail: 'ร่างกายต้องลดอุณหภูมิ 1-2°C เพื่อเข้าสู่การนอนหลับลึก (Deep Sleep)',
+    action: 'ตั้งแอร์ 20-22°C หรือใช้พัดลมช่วยระบาย' },
+  { icon: '☕', title: 'คาเฟอีนมีครึ่งชีวิต 6 ชั่วโมง',
+    detail: 'กาแฟบ่าย 3 โมง ยังค้างในร่างกาย 50% จนถึงตี 3 ลด deep sleep ได้ 20-40%',
+    action: 'หลีกเลี่ยงคาเฟอีนทุกชนิด (กาแฟ ชา น้ำอัดลม) หลัง 14:00 น.' },
+  { icon: '🏃', title: 'ออกกำลังกายช่วงเช้า-บ่าย ดีกว่าเย็น',
+    detail: 'การออกกำลังกายช่วยให้นอนหลับลึกขึ้น แต่ถ้าทำก่อนนอนจะทำให้ตื่นตัวมากเกิน',
+    action: 'หยุดออกกำลังกายหนักอย่างน้อย 3 ชม. ก่อนเข้านอน' },
+  { icon: '🛏️', title: 'ถ้านอนไม่หลับเกิน 25 นาที ให้ลุกขึ้น',
+    detail: 'นอนดิ้นรนทำให้สมองจำว่า "เตียง = ที่นอนไม่หลับ" — ยิ่งแย่ลงเรื่อยๆ',
+    action: 'ลุกไปทำอะไรที่ผ่อนคลายในแสงหรี่ แล้วค่อยกลับมานอนเมื่อง่วง' },
+];
+
+// ─── RENDER INSIGHTS ─────────────────────────────────────────────────────────
+
+function renderInsights() {
+  const container   = document.getElementById('insights-content');
+  const analysis    = analyzeSleep();
+  const personalTips = generatePersonalTips(analysis);
+  let html = '';
+
+  // Stats card
+  if (analysis) {
+    const durClass = analysis.avgDuration < 7 ? 'stat-warn' : analysis.avgDuration > 9 ? 'stat-info' : 'stat-ok';
+    const conClass = analysis.wakeStdDev > 60 ? 'stat-warn' : analysis.wakeStdDev > 30 ? 'stat-info' : 'stat-ok';
+    html += `
+      <div class="card">
+        <div class="card-title">${analysis.count} คืนที่บันทึกไว้ · 7 วันล่าสุด</div>
+        <div class="stat-row">
+          <div class="stat-box ${durClass}">
+            <div class="stat-val">${analysis.avgDuration.toFixed(1)}<span class="stat-unit"> ชม.</span></div>
+            <div class="stat-label">นอนเฉลี่ย</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${formatMins(analysis.avgWakeMins)}</div>
+            <div class="stat-label">ตื่นเฉลี่ย</div>
+          </div>
+          <div class="stat-box ${conClass}">
+            <div class="stat-val">${Math.round(analysis.wakeStdDev)}<span class="stat-unit"> นาที</span></div>
+            <div class="stat-label">ความแปรปรวน</div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    html += `
+      <div class="card" style="text-align:center;padding:24px 16px;">
+        <div style="font-size:40px;margin-bottom:10px;">💤</div>
+        <div style="color:var(--muted);font-size:14px;line-height:1.6;">
+          บันทึก Morning + Night Log อย่างน้อย 2 วัน<br>เพื่อดูการวิเคราะห์การนอนของคุณ
+        </div>
+      </div>`;
+  }
+
+  // Personalized tips
+  if (personalTips.length) {
+    html += `<div class="insights-section-title">⚠️ สิ่งที่ควรปรับ</div>`;
+    personalTips.forEach(t => {
+      html += `
+        <div class="tip-card tip-${t.level}">
+          <div class="tip-header">${t.icon} ${t.title}</div>
+          <div class="tip-detail">${t.detail}</div>
+          <div class="tip-action">💡 ${t.action}</div>
+        </div>`;
+    });
+  }
+
+  // General tips
+  html += `<div class="insights-section-title">📚 หลักการนอนที่ดี</div>`;
+  SLEEP_TIPS.forEach(t => {
+    html += `
+      <div class="tip-card">
+        <div class="tip-header">${t.icon} ${t.title}</div>
+        <div class="tip-detail">${t.detail}</div>
+        <div class="tip-action">💡 ${t.action}</div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
 }
 
 // ─── GOOGLE CALENDAR ─────────────────────────────────────────────────────────
