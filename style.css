@@ -482,6 +482,27 @@ textarea.form-input {
 }
 .btn-copy:active { background: var(--border); }
 
+/* ─── CALENDAR BUTTON ─── */
+
+.btn-calendar {
+  width: 100%;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 8px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-calendar:active {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
 /* ─── EMPTY STATE ─── */
 
 .empty {

@@ -1,7 +1,8 @@
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'ltd-daily-v1';
-const MAX_WATER   = 8;
+const STORAGE_KEY    = 'ltd-daily-v1';
+const MAX_WATER      = 8;
+const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // ← ใส่ Client ID จาก Google Cloud Console
 
 const MOODS = { 1:'😴 ง่วง', 2:'😕 แย่', 3:'😐 ปกติ', 4:'🙂 ดี', 5:'😄 ดีมาก' };
 
@@ -349,6 +350,100 @@ function showToast(msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ─── GOOGLE CALENDAR ─────────────────────────────────────────────────────────
+
+let gTokenClient = null;
+let gAccessToken = null;
+
+function getTokenClient() {
+  if (!gTokenClient) {
+    gTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/calendar.readonly',
+      callback: () => {}
+    });
+  }
+  return gTokenClient;
+}
+
+function requestToken() {
+  return new Promise((resolve, reject) => {
+    if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+      reject(new Error('no-client-id'));
+      return;
+    }
+    const client = getTokenClient();
+    client.callback = (res) => {
+      if (res.error) { reject(new Error(res.error)); return; }
+      gAccessToken = res.access_token;
+      resolve(gAccessToken);
+    };
+    if (gAccessToken) { resolve(gAccessToken); return; }
+    client.requestAccessToken({ prompt: '' });
+  });
+}
+
+async function fetchLatestSleepEvent() {
+  const token = await requestToken();
+  const now  = new Date();
+  const from = new Date(now);
+  from.setHours(from.getHours() - 20);
+
+  const params = new URLSearchParams({
+    timeMin: from.toISOString(),
+    timeMax: now.toISOString(),
+    orderBy: 'startTime',
+    singleEvents: 'true',
+    maxResults: '30'
+  });
+
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (res.status === 401) { gAccessToken = null; throw new Error('token-expired'); }
+  if (!res.ok) throw new Error('api-error');
+
+  const data   = await res.json();
+  const events = data.items || [];
+
+  return events.find(e => {
+    const title = (e.summary || '').toLowerCase();
+    return title.includes('sleep') || title.includes('นอน');
+  }) || null;
+}
+
+async function autoFillWake() {
+  showToast('⏳ กำลังดึงข้อมูล...');
+  try {
+    const ev = await fetchLatestSleepEvent();
+    if (!ev) { showToast('❌ ไม่พบ Sleep event ใน Calendar'); return; }
+    const end = new Date(ev.end.dateTime || ev.end.date);
+    const t   = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    document.getElementById('wake-time').value = t;
+    showToast(`🌅 ดึงเวลาตื่น ${t} แล้ว!`);
+  } catch (e) {
+    if (e.message === 'no-client-id') showToast('⚠️ ยังไม่ได้ตั้ง Google Client ID');
+    else showToast('❌ ดึงข้อมูลไม่ได้ ลองใหม่');
+  }
+}
+
+async function autoFillSleep() {
+  showToast('⏳ กำลังดึงข้อมูล...');
+  try {
+    const ev = await fetchLatestSleepEvent();
+    if (!ev) { showToast('❌ ไม่พบ Sleep event ใน Calendar'); return; }
+    const start = new Date(ev.start.dateTime || ev.start.date);
+    const t     = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+    document.getElementById('sleep-time').value = t;
+    showToast(`🌙 ดึงเวลานอน ${t} แล้ว!`);
+  } catch (e) {
+    if (e.message === 'no-client-id') showToast('⚠️ ยังไม่ได้ตั้ง Google Client ID');
+    else showToast('❌ ดึงข้อมูลไม่ได้ ลองใหม่');
+  }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
