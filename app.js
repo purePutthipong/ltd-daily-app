@@ -412,7 +412,7 @@ async function fetchLatestSleepEvent() {
 
   return events.find(e => {
     const title = (e.summary || '').toLowerCase();
-    return title.includes('sleep') || title.includes('นอน');
+    return title.includes('sleep') || title.includes('นอน') || title.includes('หลับ');
   }) || null;
 }
 
