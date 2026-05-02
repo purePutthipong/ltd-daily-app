@@ -667,7 +667,7 @@ let driveFileId  = null;
 
 const G_AUTH_KEY      = 'ltd-auth-v2';   // v2 = calendar + drive scope
 const DRIVE_FILE_NAME = 'ltd-daily-data.json';
-const isAuthorized    = () => localStorage.getItem(G_AUTH_KEY) === '1';
+const isAuthorized    = () => localStorage.getItem(G_AUTH_KEY) === '1' || localStorage.getItem('ltd-gcal-auth') === '1';
 
 function getTokenClient() {
   if (!gTokenClient) {
@@ -1269,12 +1269,10 @@ async function init() {
       const token = await requestToken(true);
       const driveData = await driveLoad(token);
       if (driveData && typeof driveData === 'object') {
-        // Merge: Drive = source of truth; preserve today's local edits on top
         const today = getToday();
         const todayLocal = data[today] ? JSON.parse(JSON.stringify(data[today])) : null;
         data = { ...driveData };
         if (todayLocal) {
-          // Keep whichever version of today has more filled fields
           const driveToday = driveData[today];
           const localWater = todayLocal.water || 0;
           const driveWater = driveToday?.water || 0;
@@ -1282,8 +1280,11 @@ async function init() {
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         renderHome();
-        setSyncStatus('synced');
+      } else if (!driveData) {
+        // First time — push local data to Drive
+        await driveSave(token, data);
       }
+      setSyncStatus('synced');
     } catch {
       setSyncStatus('offline');
     }
