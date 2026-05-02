@@ -76,6 +76,13 @@
         <div id="insights-content"></div>
       </div>
 
+      <!-- PORTFOLIO VIEW -->
+      <div id="view-portfolio" class="view">
+        <div id="portfolio-content">
+          <div class="empty"><div class="empty-icon">📈</div><div class="empty-text">กำลังโหลด...</div></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ─── BOTTOM NAV ─── -->
@@ -84,13 +91,17 @@
         <span class="nav-icon">🏠</span>
         <span>วันนี้</span>
       </button>
+      <button class="nav-btn" id="nav-portfolio" onclick="switchTab('portfolio')">
+        <span class="nav-icon">📈</span>
+        <span>พอร์ต</span>
+      </button>
       <button class="nav-btn" id="nav-insights" onclick="switchTab('insights')">
         <span class="nav-icon">💤</span>
-        <span>Insights</span>
+        <span>Sleep</span>
       </button>
       <button class="nav-btn" id="nav-history" onclick="switchTab('history')">
         <span class="nav-icon">📋</span>
-        <span>ประวัติ</span>
+        <span>Log</span>
       </button>
     </nav>
 

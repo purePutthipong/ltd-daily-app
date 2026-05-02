@@ -260,8 +260,9 @@ function switchTab(tab) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`view-${tab}`).classList.add('active');
   document.getElementById(`nav-${tab}`).classList.add('active');
-  if (tab === 'history')  renderHistory();
-  if (tab === 'insights') renderInsights();
+  if (tab === 'history')   renderHistory();
+  if (tab === 'insights')  renderInsights();
+  if (tab === 'portfolio') renderPortfolio();
 }
 
 // ─── HISTORY ─────────────────────────────────────────────────────────────────
@@ -672,6 +673,317 @@ async function autoFillSleep() {
   } catch (e) {
     if (e.message === 'no-client-id') showToast('⚠️ ยังไม่ได้ตั้ง Google Client ID');
     else showToast('❌ ดึงข้อมูลไม่ได้ ลองใหม่');
+  }
+}
+
+// ─── PORTFOLIO ───────────────────────────────────────────────────────────────
+
+const PORTFOLIO = {
+  dca:    [{ symbol: 'QQQM', name: 'Nasdaq 100 ETF', alloc: '70%' },
+           { symbol: 'SMH',  name: 'Semiconductor ETF', alloc: '30%' }],
+  growth: [{ symbol: 'PLTR', name: 'Palantir', alloc: '50%' },
+           { symbol: 'ARM',  name: 'ARM Holdings', alloc: '50%' }]
+};
+
+const PORT_CACHE_KEY = 'ltd-port-v1';
+const PORT_CACHE_TTL = 30 * 60 * 1000; // 30 min
+
+function loadPortCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(PORT_CACHE_KEY) || 'null');
+    if (c && Date.now() - c.ts < PORT_CACHE_TTL) return c.data;
+  } catch {}
+  return null;
+}
+
+function savePortCache(data) {
+  localStorage.setItem(PORT_CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+}
+
+// ── Data fetching ──
+
+async function fetchYahoo(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=8mo`;
+  let res;
+  try {
+    res = await fetch(url);
+    if (!res.ok) throw new Error();
+  } catch {
+    res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
+  }
+  const json  = await res.json();
+  const chart = json.chart?.result?.[0];
+  if (!chart) throw new Error(`no data: ${symbol}`);
+  const raw   = chart.indicators.quote[0].close;
+  const times = chart.timestamp;
+  const valid = raw.map((c, i) => [times[i], c]).filter(([, c]) => c != null);
+  return { symbol, closes: valid.map(([, c]) => c), timestamps: valid.map(([t]) => t) };
+}
+
+async function fetchFearGreed() {
+  try {
+    const res  = await fetch('https://api.alternative.me/fng/?limit=1');
+    const json = await res.json();
+    const d    = json.data[0];
+    return { value: parseInt(d.value), label: d.value_classification };
+  } catch {
+    return { value: 50, label: 'Neutral' };
+  }
+}
+
+// ── Calculations ──
+
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return null;
+  let avgGain = 0, avgLoss = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d > 0) avgGain += d; else avgLoss -= d;
+  }
+  avgGain /= period; avgLoss /= period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    avgGain = (avgGain * (period - 1) + Math.max(d, 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(-d, 0)) / period;
+  }
+  return avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+}
+
+function calcMA(closes, period = 120) {
+  if (closes.length < period) return null;
+  const slice = closes.slice(-period);
+  return slice.reduce((s, p) => s + p, 0) / period;
+}
+
+function genSignal(rsi, vsMA, fng) {
+  let score = 0;
+  const why = [];
+
+  // RSI
+  if (rsi !== null) {
+    if (rsi < 30)      { score += 3; why.push(`RSI ${rsi.toFixed(0)} (oversold)`); }
+    else if (rsi < 45) { score += 2; why.push(`RSI ${rsi.toFixed(0)}`); }
+    else if (rsi < 60) { score += 1; }
+    else if (rsi > 70) { score -= 1; why.push(`RSI ${rsi.toFixed(0)} (overbought)`); }
+  }
+
+  // vs MA120
+  if (vsMA !== null) {
+    if (vsMA < -10)     { score += 3; why.push(`${vsMA.toFixed(1)}% ต่ำกว่า MA120`); }
+    else if (vsMA < -3) { score += 2; why.push(`${vsMA.toFixed(1)}% ต่ำกว่า MA120`); }
+    else if (vsMA < 5)  { score += 1; }
+    else if (vsMA > 20) { score -= 1; why.push(`+${vsMA.toFixed(1)}% เหนือ MA120`); }
+  }
+
+  // Fear & Greed
+  if (fng < 25)      { score += 2; why.push('Extreme Fear'); }
+  else if (fng < 40) { score += 1; why.push('Fear zone'); }
+  else if (fng > 75) { score -= 1; why.push('Extreme Greed'); }
+
+  if (score >= 5) return { signal: 'BUY', strength: 'strong', why };
+  if (score >= 3) return { signal: 'BUY', strength: 'mild',   why };
+  if (score >= 1) return { signal: 'HOLD', strength: 'hold',  why };
+  return           { signal: 'SKIP', strength: 'skip',         why };
+}
+
+// ── Sparkline SVG ──
+
+function sparkline(prices, w = 110, h = 40) {
+  if (!prices || prices.length < 2) return '';
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const range = max - min || 1;
+  const pts = prices.map((p, i) => {
+    const x = (i / (prices.length - 1)) * w;
+    const y = h - 2 - ((p - min) / range) * (h - 6);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const isUp  = prices[prices.length - 1] >= prices[0];
+  const color = isUp ? '#3fb950' : '#f85149';
+  const uid   = Math.random().toString(36).slice(2, 7);
+  const lastPt = pts.split(' ').pop();
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" style="display:block;overflow:visible">
+    <defs>
+      <linearGradient id="sg${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <polygon points="${pts} ${w},${h} 0,${h}" fill="url(#sg${uid})"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${lastPt.split(',')[0]}" cy="${lastPt.split(',')[1]}" r="2.5" fill="${color}"/>
+  </svg>`;
+}
+
+// ── F&G Gauge SVG ──
+
+function fngGauge(value) {
+  const cx = 110, cy = 95, r = 75;
+  const angleRad = Math.PI - (value / 100) * Math.PI;
+  const nx = cx + r * Math.cos(angleRad);
+  const ny = cy - r * Math.sin(angleRad);
+  const color = value < 25 ? '#f85149' : value < 45 ? '#e3a008' : value < 55 ? '#caa505' : value < 75 ? '#7ee787' : '#3fb950';
+
+  return `<svg viewBox="0 0 220 105" style="width:100%;max-width:240px;display:block">
+    <defs>
+      <linearGradient id="fg-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#f85149"/>
+        <stop offset="25%"  stop-color="#e3a008"/>
+        <stop offset="50%"  stop-color="#caa505"/>
+        <stop offset="75%"  stop-color="#7ee787"/>
+        <stop offset="100%" stop-color="#3fb950"/>
+      </linearGradient>
+    </defs>
+    <path d="M${cx-r},${cy} A${r},${r} 0 0,1 ${cx+r},${cy}" fill="none" stroke="#21262d" stroke-width="14"/>
+    <path d="M${cx-r},${cy} A${r},${r} 0 0,1 ${cx+r},${cy}" fill="none" stroke="url(#fg-grad)" stroke-width="10" opacity="0.3"/>
+    ${value > 1 ? `<path d="M${cx-r},${cy} A${r},${r} 0 0,1 ${nx.toFixed(1)},${ny.toFixed(1)}" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"/>` : ''}
+    <line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="5" fill="${color}"/>
+    <text x="${cx}" y="${cy - 14}" text-anchor="middle" font-size="30" font-weight="700" fill="${color}" font-family="system-ui,sans-serif">${value}</text>
+  </svg>`;
+}
+
+// ── Render functions ──
+
+function renderStockCard({ symbol, name, alloc }, stock) {
+  const { price, change, rsi, vsMA, spark, signal } = stock;
+  const changeColor = change >= 0 ? '#3fb950' : '#f85149';
+  const changeSign  = change >= 0 ? '+' : '';
+  const rsiColor    = rsi < 30 ? '#f85149' : rsi < 45 ? '#e3a008' : rsi > 70 ? '#f85149' : 'var(--text)';
+  const vsMaColor   = vsMA < -3 ? '#3fb950' : vsMA > 15 ? '#f85149' : 'var(--muted)';
+
+  const BADGE = {
+    BUY:  { color: '#3fb950', bg: 'rgba(63,185,80,0.13)',  text: '🟢 BUY'  },
+    HOLD: { color: '#d29922', bg: 'rgba(210,153,34,0.13)', text: '🟡 HOLD' },
+    SKIP: { color: '#f85149', bg: 'rgba(248,81,73,0.13)',  text: '🔴 SKIP' },
+  }[signal.signal];
+
+  return `
+    <div class="stock-card">
+      <div class="stock-header">
+        <div>
+          <div class="stock-symbol">${symbol}</div>
+          <div class="stock-name">${alloc}</div>
+        </div>
+        <div class="signal-badge" style="color:${BADGE.color};background:${BADGE.bg}">${BADGE.text}</div>
+      </div>
+      <div class="stock-price">$${price.toFixed(2)}</div>
+      <div class="stock-change" style="color:${changeColor}">${changeSign}${change.toFixed(2)}%</div>
+      <div class="sparkline-wrap">${sparkline(spark)}</div>
+      <div class="stock-indicators">
+        <div class="ind-row">
+          <span class="ind-label">RSI 14</span>
+          <span class="ind-val" style="color:${rsiColor}">${rsi !== null ? rsi.toFixed(0) : '-'}</span>
+        </div>
+        <div class="ind-row">
+          <span class="ind-label">vs MA120</span>
+          <span class="ind-val" style="color:${vsMaColor}">${vsMA !== null ? `${vsMA >= 0 ? '+' : ''}${vsMA.toFixed(1)}%` : '-'}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderDCASummary(stocks, fng) {
+  const dcaStocks  = PORTFOLIO.dca.map(s => stocks[s.symbol]);
+  const buyCount   = dcaStocks.filter(s => s.signal.signal === 'BUY').length;
+  const allBuy     = buyCount === 2;
+  const oneBuy     = buyCount === 1;
+
+  const recText  = allBuy ? 'แนะนำ DCA สัปดาห์นี้' : oneBuy ? 'DCA ได้ (สัญญาณอ่อน)' : 'รอก่อน — ไม่มีสัญญาณ';
+  const recColor = allBuy ? '#3fb950' : oneBuy ? '#d29922' : '#f85149';
+  const recIcon  = allBuy ? '✅' : oneBuy ? '⚠️' : '⏸️';
+
+  const allWhys = [...new Set(dcaStocks.flatMap(s => s.signal.why))].slice(0, 3);
+
+  return `
+    <div class="card dca-card">
+      <div class="card-title">💰 DCA Signal สัปดาห์นี้</div>
+      <div class="dca-rec" style="color:${recColor}">${recIcon} ${recText}</div>
+      ${allWhys.length ? `<div class="dca-reasons">${allWhys.join(' · ')}</div>` : ''}
+    </div>`;
+}
+
+function renderPortfolioUI(portData) {
+  const { stocks, fng, updatedAt } = portData;
+  const fngColor = fng.value < 25 ? '#f85149' : fng.value < 45 ? '#e3a008' : fng.value < 55 ? '#caa505' : fng.value < 75 ? '#7ee787' : '#3fb950';
+
+  let html = '';
+
+  // Fear & Greed
+  html += `
+    <div class="card fng-card">
+      <div class="card-title">😱 Fear & Greed Index <span style="color:var(--muted);font-weight:400;font-size:10px">(crypto sentiment)</span></div>
+      <div class="fng-gauge">${fngGauge(fng.value)}</div>
+      <div class="fng-label" style="color:${fngColor}">${fng.label}</div>
+    </div>`;
+
+  // DCA Summary
+  html += renderDCASummary(stocks, fng);
+
+  // DCA Portfolio
+  html += `<div class="port-section-title">💼 DCA Portfolio</div>`;
+  html += `<div class="stock-grid">`;
+  PORTFOLIO.dca.forEach(s => { html += renderStockCard(s, stocks[s.symbol]); });
+  html += `</div>`;
+
+  // Growth Portfolio
+  html += `<div class="port-section-title">🚀 Growth Portfolio</div>`;
+  html += `<div class="stock-grid">`;
+  PORTFOLIO.growth.forEach(s => { html += renderStockCard(s, stocks[s.symbol]); });
+  html += `</div>`;
+
+  // Footer
+  html += `
+    <div class="port-footer">
+      <span class="port-updated">อัปเดต ${updatedAt}</span>
+      <button class="btn-refresh" onclick="renderPortfolio(true)">🔄 Refresh</button>
+    </div>`;
+
+  document.getElementById('portfolio-content').innerHTML = html;
+}
+
+async function renderPortfolio(forceRefresh = false) {
+  const container = document.getElementById('portfolio-content');
+  if (!forceRefresh) {
+    const cached = loadPortCache();
+    if (cached) { renderPortfolioUI(cached); return; }
+  }
+
+  container.innerHTML = `<div class="empty"><div class="empty-icon">⏳</div><div class="empty-text">กำลังโหลดข้อมูล...</div></div>`;
+
+  try {
+    const allSymbols = [...PORTFOLIO.dca, ...PORTFOLIO.growth].map(s => s.symbol);
+    const [stocksArr, fng] = await Promise.all([
+      Promise.all(allSymbols.map(fetchYahoo)),
+      fetchFearGreed()
+    ]);
+
+    const stocks = {};
+    for (const raw of stocksArr) {
+      const { closes } = raw;
+      const price  = closes[closes.length - 1];
+      const prev   = closes[closes.length - 2];
+      const change = ((price - prev) / prev) * 100;
+      const rsi    = calcRSI(closes);
+      const ma120  = calcMA(closes, 120);
+      const vsMA   = ma120 ? ((price - ma120) / ma120) * 100 : null;
+      const spark  = closes.slice(-21);
+      const signal = genSignal(rsi, vsMA, fng.value);
+      stocks[raw.symbol] = { price, change, rsi, ma120, vsMA, spark, signal };
+    }
+
+    const portData = {
+      stocks, fng,
+      updatedAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+    };
+    savePortCache(portData);
+    renderPortfolioUI(portData);
+  } catch (err) {
+    container.innerHTML = `
+      <div class="port-error">
+        <div style="font-size:36px;margin-bottom:10px">📡</div>
+        <div>โหลดข้อมูลไม่ได้<br><span style="font-size:12px">เช็กอินเทอร์เน็ต แล้วลองใหม่</span></div>
+        <button class="btn-refresh" style="margin-top:16px" onclick="renderPortfolio(true)">🔄 ลองใหม่</button>
+      </div>`;
   }
 }
 
