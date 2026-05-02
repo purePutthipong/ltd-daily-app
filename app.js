@@ -4,6 +4,7 @@ const STORAGE_KEY    = 'ltd-daily-v1';
 const COST_KEY       = 'ltd-costbasis';
 const VOCAB_KEY      = 'ltd-vocab-v1';
 const NOTIF_KEY      = 'ltd-notif-v1';
+const DCA_KEY        = 'ltd-dca-v1';
 const MAX_WATER      = 8;
 const SRS_INTERVALS  = [0, 1, 3, 7, 14, 30]; // days per level 0-5
 
@@ -207,6 +208,29 @@ function renderHome() {
   } else {
     nPreview.textContent = 'ยังไม่ได้บันทึก';
   }
+
+  // Task quick card
+  const tqc = document.getElementById('task-quick-card');
+  if (tqc) {
+    const tasks    = log.morning.tasks    || [];
+    const taskDone = log.morning.tasksDone || [false, false, false];
+    const active   = tasks.map((t, i) => ({ text: t, done: taskDone[i], idx: i })).filter(t => t.text.trim());
+    if (active.length) {
+      tqc.innerHTML = `
+        <div class="card">
+          <div class="card-title">✅ Tasks วันนี้</div>
+          <div class="task-quick-list">
+            ${active.map(t => `
+              <div class="task-quick-row" onclick="toggleTaskCb(${t.idx})">
+                <span class="task-quick-cb">${t.done ? '✅' : '○'}</span>
+                <span class="task-quick-text${t.done ? ' done' : ''}">${esc(t.text)}</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    } else {
+      tqc.innerHTML = '';
+    }
+  }
 }
 
 // ─── WATER ───────────────────────────────────────────────────────────────────
@@ -264,6 +288,8 @@ function openOverlay(name) {
     if (!log.morning.wakeTime) tryAutoFill('wake');
   } else if (name === 'settings') {
     openSettingsOverlay();
+  } else if (name === 'pomodoro') {
+    openPomodoro();
   } else {
     document.getElementById('sleep-time').value  = log.night.sleepTime || '';
     document.getElementById('reflection').value  = log.night.reflection || '';
@@ -607,6 +633,57 @@ const SLEEP_TIPS = [
     action: 'ลุกไปทำอะไรที่ผ่อนคลายในแสงหรี่ แล้วค่อยกลับมานอนเมื่อง่วง' },
 ];
 
+// ─── MOOD/ENERGY CHART ───────────────────────────────────────────────────────
+
+function renderMoodEnergyChart() {
+  const d = new Date();
+  const dates = [];
+  for (let i = 13; i >= 0; i--) {
+    const dd = new Date(d);
+    dd.setDate(d.getDate() - i);
+    dates.push(`${dd.getFullYear()}-${pad(dd.getMonth()+1)}-${pad(dd.getDate())}`);
+  }
+
+  const hasAny = dates.some(date => data[date]?.morning?.mood || data[date]?.night?.energy);
+  if (!hasAny) return '';
+
+  const BAR = 9, GAP = 2, SLOT = BAR * 2 + GAP + 5, H = 55, today = getToday();
+  const svgW = dates.length * SLOT;
+
+  const bars = dates.map((date, i) => {
+    const mood   = data[date]?.morning?.mood   || 0;
+    const energy = data[date]?.night?.energy   || 0;
+    const x  = i * SLOT + 2;
+    const mH = mood   ? Math.max(4, (mood   / 5) * (H - 6)) : 0;
+    const eH = energy ? Math.max(4, (energy / 5) * (H - 6)) : 0;
+    const hi = date === today;
+    const dayNum = parseDate(date).getDate();
+    return `
+      ${mood
+        ? `<rect x="${x}" y="${(H-mH).toFixed(1)}" width="${BAR}" height="${mH.toFixed(1)}" rx="2" fill="${hi?'#79c0ff':'#58a6ff'}" opacity="0.85"/>`
+        : `<rect x="${x}" y="${H-3}" width="${BAR}" height="3" rx="1" fill="#21262d"/>`}
+      ${energy
+        ? `<rect x="${x+BAR+GAP}" y="${(H-eH).toFixed(1)}" width="${BAR}" height="${eH.toFixed(1)}" rx="2" fill="${hi?'#56d364':'#3fb950'}" opacity="0.85"/>`
+        : `<rect x="${x+BAR+GAP}" y="${H-3}" width="${BAR}" height="3" rx="1" fill="#21262d"/>`}
+      ${i % 2 === 0 ? `<text x="${x+BAR}" y="${H+11}" text-anchor="middle" font-size="8" fill="#8b949e" font-family="system-ui">${dayNum}</text>` : ''}`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="card-title" style="margin-bottom:8px">📈 Mood & Energy · 14 วัน</div>
+      <div class="chart-legend">
+        <span class="legend-dot" style="background:#58a6ff"></span><span>Mood</span>
+        &nbsp;&nbsp;
+        <span class="legend-dot" style="background:#3fb950"></span><span>Energy</span>
+      </div>
+      <div style="overflow-x:auto;margin-top:8px">
+        <svg viewBox="0 0 ${svgW} ${H+14}" style="width:100%;min-width:${svgW}px;display:block;overflow:visible">
+          ${bars}
+        </svg>
+      </div>
+    </div>`;
+}
+
 // ─── RENDER INSIGHTS ─────────────────────────────────────────────────────────
 
 function renderInsights() {
@@ -663,6 +740,9 @@ function renderInsights() {
         </div>
       </div>`;
   }
+
+  // Mood/Energy chart
+  html += renderMoodEnergyChart();
 
   // Personalized tips
   if (personalTips.length) {
@@ -1096,6 +1176,18 @@ function renderStockCard({ symbol, name, alloc }, stock) {
     </div>`;
 }
 
+function loadDcaDate() {
+  try { return JSON.parse(localStorage.getItem(DCA_KEY) || 'null'); }
+  catch { return null; }
+}
+function saveDcaDate(date) { localStorage.setItem(DCA_KEY, JSON.stringify(date)); }
+
+function recordDca() {
+  saveDcaDate(getToday());
+  showToast('📌 บันทึก DCA วันนี้แล้ว!');
+  renderPortfolio(false);
+}
+
 function renderDCASummary(stocks, fng) {
   const dcaStocks  = PORTFOLIO.dca.map(s => stocks[s.symbol]);
   const buyCount   = dcaStocks.filter(s => s.signal.signal === 'BUY').length;
@@ -1108,11 +1200,28 @@ function renderDCASummary(stocks, fng) {
 
   const allWhys = [...new Set(dcaStocks.flatMap(s => s.signal.why))].slice(0, 3);
 
+  // DCA countdown
+  const lastDca = loadDcaDate();
+  let countdownHtml = '';
+  if (lastDca) {
+    const next = new Date(parseDate(lastDca));
+    next.setDate(next.getDate() + 14);
+    const daysLeft = Math.ceil((next - new Date()) / 86400000);
+    if (daysLeft <= 0) {
+      countdownHtml = `<div class="dca-countdown due">💰 ถึงเวลา DCA แล้ว! <button class="btn-record-dca" onclick="recordDca()">บันทึก DCA วันนี้</button></div>`;
+    } else {
+      countdownHtml = `<div class="dca-countdown">⏳ อีก ${daysLeft} วัน <button class="btn-record-dca" onclick="recordDca()">DCA วันนี้</button></div>`;
+    }
+  } else {
+    countdownHtml = `<div class="dca-countdown"><button class="btn-record-dca" onclick="recordDca()">📌 ตั้งวัน DCA ครั้งแรก</button></div>`;
+  }
+
   return `
     <div class="card dca-card">
       <div class="card-title">💰 DCA Signal สัปดาห์นี้</div>
       <div class="dca-rec" style="color:${recColor}">${recIcon} ${recText}</div>
       ${allWhys.length ? `<div class="dca-reasons">${allWhys.join(' · ')}</div>` : ''}
+      ${countdownHtml}
     </div>`;
 }
 
@@ -1485,6 +1594,107 @@ function _downloadLog(date, content) {
   a.download = `${date}.md`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─── POMODORO ────────────────────────────────────────────────────────────────
+
+let pomoState = { running: false, remaining: 25*60, duration: 25*60, mode: 'work', interval: null };
+
+function openPomodoro() {
+  const count = data[getToday()]?.pomodoros || 0;
+  const countEl = document.getElementById('pomo-count');
+  if (countEl) countEl.textContent = `วันนี้: ${count} session`;
+  updatePomoDisplay();
+  // sync preset button state
+  const dur = String(pomoState.duration / 60);
+  ['25','50','5'].forEach(m => {
+    const el = document.getElementById(`preset-${m}`);
+    if (el) el.classList.toggle('active', dur === m);
+  });
+  const startBtn = document.getElementById('pomo-btn-start');
+  if (startBtn) startBtn.textContent = pomoState.running ? '⏸ หยุด' : (pomoState.remaining < pomoState.duration ? '▶ ต่อ' : '▶ เริ่ม');
+  document.getElementById('overlay-pomodoro').classList.add('open');
+}
+
+function pomodoroStartPause() {
+  if (pomoState.running) {
+    clearInterval(pomoState.interval);
+    pomoState.running = false;
+    document.getElementById('pomo-btn-start').textContent = '▶ ต่อ';
+  } else {
+    pomoState.running = true;
+    document.getElementById('pomo-btn-start').textContent = '⏸ หยุด';
+    pomoState.interval = setInterval(tickPomodoro, 1000);
+  }
+}
+
+function tickPomodoro() {
+  pomoState.remaining--;
+  updatePomoDisplay();
+  if (pomoState.remaining <= 0) {
+    clearInterval(pomoState.interval);
+    pomoState.running = false;
+    pomodoroComplete();
+  }
+}
+
+function pomodoroComplete() {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const isBreak = pomoState.mode === 'break';
+    new Notification(isBreak ? '☕ Break หมดแล้ว!' : '🎯 Pomodoro จบแล้ว!', {
+      body: isBreak ? 'พักครบแล้ว กลับมาทำต่อ!' : 'เยี่ยม! พักสักครู่ก่อนนะ',
+      icon: './icon.svg'
+    });
+  }
+
+  if (pomoState.mode !== 'break') {
+    const log = getLog(getToday());
+    log.pomodoros = (log.pomodoros || 0) + 1;
+    save();
+    const countEl = document.getElementById('pomo-count');
+    if (countEl) countEl.textContent = `วันนี้: ${log.pomodoros} session`;
+    showToast(`🎯 Pomodoro ที่ ${log.pomodoros} จบแล้ว! พักสักครู่`);
+  } else {
+    showToast('☕ Break หมดแล้ว กลับมาทำต่อ!');
+  }
+
+  pomoState.remaining = pomoState.duration;
+  updatePomoDisplay();
+  const btn = document.getElementById('pomo-btn-start');
+  if (btn) btn.textContent = '▶ เริ่ม';
+}
+
+function resetPomodoro() {
+  clearInterval(pomoState.interval);
+  pomoState.running   = false;
+  pomoState.remaining = pomoState.duration;
+  updatePomoDisplay();
+  const btn = document.getElementById('pomo-btn-start');
+  if (btn) btn.textContent = '▶ เริ่ม';
+}
+
+function setPomoMode(mins, mode) {
+  resetPomodoro();
+  pomoState.duration  = mins * 60;
+  pomoState.remaining = mins * 60;
+  pomoState.mode      = mode;
+  updatePomoDisplay();
+  ['25','50','5'].forEach(m => {
+    const el = document.getElementById(`preset-${m}`);
+    if (el) el.classList.toggle('active', String(mins) === m);
+  });
+}
+
+function updatePomoDisplay() {
+  const m = Math.floor(pomoState.remaining / 60);
+  const s = pomoState.remaining % 60;
+  const timeEl = document.getElementById('pomo-time');
+  const modeEl = document.getElementById('pomo-mode');
+  if (timeEl) timeEl.textContent = `${pad(m)}:${pad(s)}`;
+  if (modeEl) {
+    const labels = { work: '🎯 Work · 25 min', deep: '🔥 Deep Work · 50 min', break: '☕ Break · 5 min' };
+    modeEl.textContent = labels[pomoState.mode] || '';
+  }
 }
 
 // ─── SPEECH ──────────────────────────────────────────────────────────────────

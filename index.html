@@ -57,6 +57,9 @@
           <div class="log-preview" id="morning-preview">ยังไม่ได้บันทึก</div>
         </div>
 
+        <!-- Tasks quick card -->
+        <div id="task-quick-card"></div>
+
         <!-- Night -->
         <div class="card card-tap" onclick="openOverlay('night')">
           <div class="card-header">
@@ -66,8 +69,11 @@
           <div class="log-preview" id="night-preview">ยังไม่ได้บันทึก</div>
         </div>
 
-        <!-- Export -->
-        <button class="btn-export" onclick="exportTodayLog()">📤 Export วันนี้ → LTD OS</button>
+        <!-- Actions row -->
+        <div class="home-actions">
+          <button class="btn-action" onclick="exportTodayLog()">📤 Export</button>
+          <button class="btn-action" onclick="openOverlay('pomodoro')">⏱️ Pomodoro</button>
+        </div>
       </div>
 
       <!-- HISTORY VIEW -->
@@ -192,6 +198,30 @@
         <textarea class="form-input" id="reflection" rows="4" placeholder="วันนี้เป็นยังไงบ้าง..."></textarea>
       </div>
       <button class="btn-save" onclick="saveNight()">บันทึก Night</button>
+    </div>
+  </div>
+
+  <!-- ─── POMODORO OVERLAY ─── -->
+  <div class="overlay" id="overlay-pomodoro">
+    <div class="overlay-header">
+      <button class="btn-back" onclick="closeOverlay()">‹</button>
+      <span class="overlay-title">⏱️ Pomodoro</span>
+    </div>
+    <div class="overlay-body">
+      <div class="pomo-display">
+        <div class="pomo-mode" id="pomo-mode">🎯 Work · 25 min</div>
+        <div class="pomo-time" id="pomo-time">25:00</div>
+        <div class="pomo-count" id="pomo-count">วันนี้: 0 session</div>
+      </div>
+      <div class="pomo-controls">
+        <button class="btn-pomo-main" id="pomo-btn-start" onclick="pomodoroStartPause()">▶ เริ่ม</button>
+        <button class="btn-pomo-reset" onclick="resetPomodoro()">↺ Reset</button>
+      </div>
+      <div class="pomo-presets">
+        <button class="pomo-preset active" id="preset-25" onclick="setPomoMode(25,'work')">25 นาที</button>
+        <button class="pomo-preset" id="preset-50" onclick="setPomoMode(50,'deep')">50 นาที</button>
+        <button class="pomo-preset" id="preset-5" onclick="setPomoMode(5,'break')">☕ Break 5</button>
+      </div>
     </div>
   </div>
 
