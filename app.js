@@ -2,7 +2,180 @@
 
 const STORAGE_KEY    = 'ltd-daily-v1';
 const COST_KEY       = 'ltd-costbasis';
+const VOCAB_KEY      = 'ltd-vocab-v1';
 const MAX_WATER      = 8;
+const SRS_INTERVALS  = [0, 1, 3, 7, 14, 30]; // days per level 0-5
+
+const VOCAB_WORDS = [
+  // ── Verbs ──
+  {id:1,  en:'go',       th:'ไป',            ex:'Let\'s go to school.'},
+  {id:2,  en:'come',     th:'มา',            ex:'Please come here.'},
+  {id:3,  en:'eat',      th:'กิน',           ex:'I eat rice every day.'},
+  {id:4,  en:'drink',    th:'ดื่ม',           ex:'Drink water often.'},
+  {id:5,  en:'sleep',    th:'นอนหลับ',        ex:'I sleep at 10 PM.'},
+  {id:6,  en:'wake up',  th:'ตื่นนอน',        ex:'I wake up at 7 AM.'},
+  {id:7,  en:'work',     th:'ทำงาน',          ex:'She works every day.'},
+  {id:8,  en:'study',    th:'เรียน',          ex:'I study English.'},
+  {id:9,  en:'read',     th:'อ่าน',           ex:'Read this book.'},
+  {id:10, en:'write',    th:'เขียน',          ex:'Write your name.'},
+  {id:11, en:'run',      th:'วิ่ง',           ex:'He runs every morning.'},
+  {id:12, en:'walk',     th:'เดิน',           ex:'Let\'s walk to the park.'},
+  {id:13, en:'talk',     th:'พูด / คุย',      ex:'Talk to me.'},
+  {id:14, en:'listen',   th:'ฟัง',            ex:'Listen carefully.'},
+  {id:15, en:'watch',    th:'ดู',             ex:'Watch this video.'},
+  {id:16, en:'buy',      th:'ซื้อ',           ex:'I want to buy food.'},
+  {id:17, en:'sell',     th:'ขาย',            ex:'He sells phones.'},
+  {id:18, en:'pay',      th:'จ่ายเงิน',       ex:'Pay the bill.'},
+  {id:19, en:'help',     th:'ช่วย',           ex:'Can you help me?'},
+  {id:20, en:'need',     th:'ต้องการ',        ex:'I need water.'},
+  {id:21, en:'want',     th:'อยาก / ต้องการ', ex:'I want coffee.'},
+  {id:22, en:'like',     th:'ชอบ',            ex:'I like cats.'},
+  {id:23, en:'love',     th:'รัก',            ex:'I love my family.'},
+  {id:24, en:'know',     th:'รู้ / รู้จัก',   ex:'Do you know him?'},
+  {id:25, en:'think',    th:'คิด',            ex:'I think it\'s good.'},
+  {id:26, en:'feel',     th:'รู้สึก',         ex:'I feel tired.'},
+  {id:27, en:'see',      th:'เห็น',           ex:'Can you see that?'},
+  {id:28, en:'hear',     th:'ได้ยิน',         ex:'I hear music.'},
+  {id:29, en:'find',     th:'หา / พบ',        ex:'I can\'t find my keys.'},
+  {id:30, en:'get',      th:'ได้รับ',         ex:'Get some rest.'},
+  {id:31, en:'make',     th:'ทำ / สร้าง',     ex:'Make a coffee.'},
+  {id:32, en:'take',     th:'เอา / รับ',      ex:'Take this bag.'},
+  {id:33, en:'give',     th:'ให้',            ex:'Give me water.'},
+  {id:34, en:'tell',     th:'บอก',            ex:'Tell me the truth.'},
+  {id:35, en:'ask',      th:'ถาม',            ex:'Ask your teacher.'},
+  {id:36, en:'try',      th:'พยายาม',         ex:'Try your best.'},
+  {id:37, en:'use',      th:'ใช้',            ex:'Use this pen.'},
+  {id:38, en:'open',     th:'เปิด',           ex:'Open the door.'},
+  {id:39, en:'close',    th:'ปิด',            ex:'Close the window.'},
+  {id:40, en:'start',    th:'เริ่ม',          ex:'Start now.'},
+  {id:41, en:'stop',     th:'หยุด',           ex:'Stop running.'},
+  {id:42, en:'wait',     th:'รอ',             ex:'Wait for me.'},
+  {id:43, en:'remember', th:'จำ',             ex:'Remember my name.'},
+  {id:44, en:'forget',   th:'ลืม',            ex:'Don\'t forget.'},
+  {id:45, en:'learn',    th:'เรียนรู้',        ex:'Learn English every day.'},
+  {id:46, en:'teach',    th:'สอน',            ex:'She teaches math.'},
+  {id:47, en:'play',     th:'เล่น',           ex:'Play football.'},
+  {id:48, en:'win',      th:'ชนะ',            ex:'We won the game.'},
+  {id:49, en:'lose',     th:'แพ้ / หาย',      ex:'Don\'t lose hope.'},
+  {id:50, en:'bring',    th:'นำมา',           ex:'Bring your book.'},
+  // ── Nouns ──
+  {id:51, en:'time',     th:'เวลา',           ex:'What time is it?'},
+  {id:52, en:'day',      th:'วัน',            ex:'Every day is new.'},
+  {id:53, en:'night',    th:'กลางคืน / คืน',  ex:'Good night!'},
+  {id:54, en:'morning',  th:'เช้า',           ex:'Good morning!'},
+  {id:55, en:'year',     th:'ปี',             ex:'This year is 2026.'},
+  {id:56, en:'week',     th:'สัปดาห์',        ex:'See you next week.'},
+  {id:57, en:'month',    th:'เดือน',          ex:'I come every month.'},
+  {id:58, en:'food',     th:'อาหาร',          ex:'The food is good.'},
+  {id:59, en:'water',    th:'น้ำ',            ex:'Drink more water.'},
+  {id:60, en:'money',    th:'เงิน',           ex:'Save your money.'},
+  {id:61, en:'home',     th:'บ้าน',           ex:'Go home now.'},
+  {id:62, en:'school',   th:'โรงเรียน',       ex:'Go to school.'},
+  {id:63, en:'friend',   th:'เพื่อน',         ex:'My friend is kind.'},
+  {id:64, en:'family',   th:'ครอบครัว',       ex:'I love my family.'},
+  {id:65, en:'name',     th:'ชื่อ',           ex:'My name is Pure.'},
+  {id:66, en:'book',     th:'หนังสือ',        ex:'Read a book.'},
+  {id:67, en:'phone',    th:'โทรศัพท์',       ex:'My phone is new.'},
+  {id:68, en:'car',      th:'รถยนต์',         ex:'I drive a car.'},
+  {id:69, en:'room',     th:'ห้อง',           ex:'My room is clean.'},
+  {id:70, en:'bag',      th:'กระเป๋า',        ex:'Carry your bag.'},
+  {id:71, en:'city',     th:'เมือง',          ex:'Bangkok is a big city.'},
+  {id:72, en:'country',  th:'ประเทศ',         ex:'Thailand is my country.'},
+  {id:73, en:'road',     th:'ถนน',            ex:'Cross the road.'},
+  {id:74, en:'shop',     th:'ร้านค้า',        ex:'The shop is open.'},
+  {id:75, en:'job',      th:'งาน / อาชีพ',    ex:'I love my job.'},
+  {id:76, en:'idea',     th:'ความคิด / ไอเดีย',ex:'Good idea!'},
+  {id:77, en:'problem',  th:'ปัญหา',          ex:'No problem.'},
+  {id:78, en:'answer',   th:'คำตอบ',          ex:'What\'s the answer?'},
+  {id:79, en:'question', th:'คำถาม',          ex:'Good question!'},
+  {id:80, en:'price',    th:'ราคา',           ex:'What\'s the price?'},
+  // ── Adjectives ──
+  {id:81, en:'good',     th:'ดี',             ex:'This is very good.'},
+  {id:82, en:'bad',      th:'แย่ / ไม่ดี',    ex:'That\'s bad news.'},
+  {id:83, en:'big',      th:'ใหญ่',           ex:'It\'s a big room.'},
+  {id:84, en:'small',    th:'เล็ก',           ex:'A small dog.'},
+  {id:85, en:'new',      th:'ใหม่',           ex:'I have a new phone.'},
+  {id:86, en:'old',      th:'เก่า / แก่',     ex:'An old book.'},
+  {id:87, en:'hot',      th:'ร้อน',           ex:'The food is hot.'},
+  {id:88, en:'cold',     th:'เย็น / หนาว',    ex:'I feel cold.'},
+  {id:89, en:'fast',     th:'เร็ว',           ex:'Run fast!'},
+  {id:90, en:'slow',     th:'ช้า',            ex:'Drive slow.'},
+  {id:91, en:'easy',     th:'ง่าย',           ex:'It\'s easy to do.'},
+  {id:92, en:'hard',     th:'ยาก / แข็ง',     ex:'This is hard.'},
+  {id:93, en:'happy',    th:'มีความสุข',       ex:'I am very happy.'},
+  {id:94, en:'sad',      th:'เศร้า',          ex:'Don\'t be sad.'},
+  {id:95, en:'tired',    th:'เหนื่อย',        ex:'I feel tired.'},
+  {id:96, en:'hungry',   th:'หิว',            ex:'I\'m hungry.'},
+  {id:97, en:'full',     th:'อิ่ม',           ex:'I\'m full now.'},
+  {id:98, en:'clean',    th:'สะอาด',          ex:'Keep it clean.'},
+  {id:99, en:'free',     th:'ว่าง / ฟรี',     ex:'Are you free today?'},
+  {id:100,en:'late',     th:'สาย',            ex:'Don\'t be late.'},
+  // ── Essential Words ──
+  {id:101,en:'yes',      th:'ใช่',            ex:'Yes, I agree.'},
+  {id:102,en:'no',       th:'ไม่',            ex:'No, thank you.'},
+  {id:103,en:'please',   th:'กรุณา',          ex:'Please help me.'},
+  {id:104,en:'sorry',    th:'ขอโทษ',          ex:'I\'m sorry.'},
+  {id:105,en:'thank you',th:'ขอบคุณ',         ex:'Thank you very much.'},
+  {id:106,en:'hello',    th:'สวัสดี',         ex:'Hello! How are you?'},
+  {id:107,en:'bye',      th:'ลาก่อน',         ex:'Bye! See you soon.'},
+  {id:108,en:'okay',     th:'โอเค / ได้',     ex:'Okay, let\'s go.'},
+  {id:109,en:'right',    th:'ถูกต้อง',        ex:'You are right.'},
+  {id:110,en:'wrong',    th:'ผิด',            ex:'That\'s wrong.'},
+  {id:111,en:'here',     th:'ที่นี่',         ex:'Come here.'},
+  {id:112,en:'there',    th:'ที่นั่น',        ex:'Look there.'},
+  {id:113,en:'now',      th:'ตอนนี้',         ex:'Do it now.'},
+  {id:114,en:'later',    th:'ทีหลัง',         ex:'See you later.'},
+  {id:115,en:'today',    th:'วันนี้',         ex:'What day is today?'},
+  {id:116,en:'tomorrow', th:'พรุ่งนี้',       ex:'See you tomorrow.'},
+  {id:117,en:'yesterday',th:'เมื่อวาน',       ex:'I slept well yesterday.'},
+  {id:118,en:'always',   th:'เสมอ',           ex:'Always be kind.'},
+  {id:119,en:'never',    th:'ไม่เคย',         ex:'I never give up.'},
+  {id:120,en:'often',    th:'บ่อยๆ',          ex:'I often exercise.'},
+  {id:121,en:'very',     th:'มาก',            ex:'It\'s very good.'},
+  {id:122,en:'more',     th:'มากกว่า / อีก',  ex:'I need more time.'},
+  {id:123,en:'less',     th:'น้อยกว่า',       ex:'Eat less sugar.'},
+  {id:124,en:'only',     th:'แค่ / เท่านั้น', ex:'Only one more day.'},
+  {id:125,en:'also',     th:'ด้วย / เช่นกัน', ex:'I also like it.'},
+  {id:126,en:'but',      th:'แต่',            ex:'Good but expensive.'},
+  {id:127,en:'because',  th:'เพราะว่า',       ex:'I\'m late because of traffic.'},
+  {id:128,en:'if',       th:'ถ้า',            ex:'If you try, you can.'},
+  {id:129,en:'when',     th:'เมื่อ / เมื่อไหร่',ex:'When do you sleep?'},
+  {id:130,en:'where',    th:'ที่ไหน',         ex:'Where are you?'},
+  {id:131,en:'what',     th:'อะไร',           ex:'What do you want?'},
+  {id:132,en:'who',      th:'ใคร',            ex:'Who is that?'},
+  {id:133,en:'how',      th:'อย่างไร / ยังไง',ex:'How are you?'},
+  {id:134,en:'why',      th:'ทำไม',           ex:'Why are you sad?'},
+  {id:135,en:'every',    th:'ทุก',            ex:'Every day is a gift.'},
+  {id:136,en:'all',      th:'ทั้งหมด',        ex:'I ate all of it.'},
+  {id:137,en:'some',     th:'บาง / บางส่วน',  ex:'Give me some water.'},
+  // ── Time ──
+  {id:138,en:'minute',   th:'นาที',           ex:'Wait five minutes.'},
+  {id:139,en:'hour',     th:'ชั่วโมง',        ex:'One hour left.'},
+  {id:140,en:'second',   th:'วินาที',         ex:'Wait a second.'},
+  // ── Body ──
+  {id:141,en:'eye',      th:'ตา',             ex:'Open your eyes.'},
+  {id:142,en:'hand',     th:'มือ',            ex:'Wash your hands.'},
+  {id:143,en:'head',     th:'หัว',            ex:'My head hurts.'},
+  {id:144,en:'heart',    th:'หัวใจ',          ex:'Follow your heart.'},
+  {id:145,en:'mouth',    th:'ปาก',            ex:'Don\'t talk with your mouth full.'},
+  // ── Tech ──
+  {id:146,en:'app',      th:'แอปพลิเคชัน',    ex:'Download this app.'},
+  {id:147,en:'data',     th:'ข้อมูล',         ex:'Check the data.'},
+  {id:148,en:'online',   th:'ออนไลน์',        ex:'I\'m online now.'},
+  {id:149,en:'message',  th:'ข้อความ',        ex:'Send me a message.'},
+  {id:150,en:'email',    th:'อีเมล',          ex:'Check your email.'},
+  // ── Important adjectives ──
+  {id:151,en:'important',th:'สำคัญ',          ex:'This is very important.'},
+  {id:152,en:'beautiful',th:'สวยงาม',         ex:'What a beautiful day!'},
+  {id:153,en:'strong',   th:'แข็งแรง',        ex:'Stay strong.'},
+  {id:154,en:'smart',    th:'ฉลาด',           ex:'You are very smart.'},
+  {id:155,en:'kind',     th:'ใจดี',           ex:'Be kind to others.'},
+  {id:156,en:'busy',     th:'ยุ่ง',           ex:'I\'m very busy today.'},
+  {id:157,en:'ready',    th:'พร้อม',          ex:'Are you ready?'},
+  {id:158,en:'safe',     th:'ปลอดภัย',        ex:'Stay safe.'},
+  {id:159,en:'sure',     th:'แน่ใจ',          ex:'Are you sure?'},
+  {id:160,en:'different',th:'แตกต่าง',        ex:'We are all different.'},
+];
 const GOOGLE_CLIENT_ID = '125209458743-96tf37mk9j35sjnb3e46pe41o0d34buc.apps.googleusercontent.com';
 
 const MOODS = { 1:'😴 ง่วง', 2:'😕 แย่', 3:'😐 ปกติ', 4:'🙂 ดี', 5:'😄 ดีมาก' };
@@ -102,7 +275,8 @@ function calcStreaks() {
     log:      streak(log => (log.morning?.mood > 0 || !!log.morning?.wakeTime) &&
                             (log.night?.energy > 0 || !!log.night?.sleepTime)),
     water:    streak(log => (log.water || 0) >= 6),
-    exercise: streak(log => log.exercise === true)
+    exercise: streak(log => log.exercise === true),
+    vocab:    calcVocabStreak()
   };
 }
 
@@ -121,7 +295,8 @@ function renderHome() {
   const pills = [
     { label: 'Log',   val: st.log,      icon: '📝' },
     { label: 'น้ำ',   val: st.water,    icon: '💧' },
-    { label: 'ออกกำลัง', val: st.exercise, icon: '🏃' }
+    { label: 'ออกกำลัง', val: st.exercise, icon: '🏃' },
+    { label: 'EN',    val: st.vocab,    icon: '📚' }
   ].filter(p => p.val > 0);
   document.getElementById('streak-row').innerHTML = pills.length
     ? pills.map(p => `<div class="streak-pill">🔥 ${p.val} <span class="streak-unit">วัน</span> ${p.icon} ${p.label}</div>`).join('')
@@ -312,6 +487,7 @@ function switchTab(tab) {
   if (tab === 'history')   renderHistory();
   if (tab === 'insights')  renderInsights();
   if (tab === 'portfolio') renderPortfolio();
+  if (tab === 'vocab')     renderVocab();
 }
 
 // ─── HISTORY ─────────────────────────────────────────────────────────────────
@@ -1199,6 +1375,159 @@ async function renderPortfolio(forceRefresh = false) {
   }
 }
 
+// ─── VOCAB ───────────────────────────────────────────────────────────────────
+
+let vocabSession = [];
+let vocabIdx     = 0;
+
+function loadVocabState() {
+  try { return JSON.parse(localStorage.getItem(VOCAB_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveVocabState(s) { localStorage.setItem(VOCAB_KEY, JSON.stringify(s)); }
+
+function calcVocabStreak() {
+  const vs = loadVocabState();
+  const sessions = new Set(vs._sessions || []);
+  const d = new Date();
+  let count = 0;
+  for (let i = 0; i < 60; i++) {
+    const date = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    if (!sessions.has(date)) break;
+    count++;
+    d.setDate(d.getDate() - 1);
+  }
+  return count;
+}
+
+function _vocabDue(state) {
+  const now = Date.now();
+  return VOCAB_WORDS.filter(w => {
+    const ws = state[w.id];
+    return ws && ws.level < 6 && ws.nextReview <= now;
+  });
+}
+function _vocabNew(state, n) {
+  const seen = new Set(Object.keys(state).map(Number));
+  return VOCAB_WORDS.filter(w => !seen.has(w.id)).slice(0, n);
+}
+function _buildSession(state) {
+  const due = _vocabDue(state).slice(0, 5);
+  const newW = _vocabNew(state, Math.max(0, 8 - due.length));
+  return [...due, ...newW].sort(() => Math.random() - 0.5);
+}
+function _wrongChoices(word) {
+  return VOCAB_WORDS.filter(w => w.id !== word.id)
+    .sort(() => Math.random() - 0.5).slice(0, 3);
+}
+
+function renderVocab() {
+  const state = loadVocabState();
+  const mastered = Object.values(state).filter(s => s.level >= 5).length;
+  const learned  = Object.keys(state).filter(k => !k.startsWith('_')).length;
+  const due      = _vocabDue(state).length;
+  const session  = _buildSession(state);
+  const progress = Math.round((learned / VOCAB_WORDS.length) * 100);
+
+  document.getElementById('vocab-overview').style.display = 'block';
+  document.getElementById('vocab-quiz').style.display    = 'none';
+
+  document.getElementById('vocab-content').innerHTML = `
+    <div class="card vocab-progress-card">
+      <div class="vocab-prog-row">
+        <span>คำที่เรียนแล้ว</span>
+        <span class="vocab-prog-val">${learned} / ${VOCAB_WORDS.length}</span>
+      </div>
+      <div class="vocab-prog-bar-wrap"><div class="vocab-prog-bar" style="width:${progress}%"></div></div>
+      <div class="vocab-prog-sub">✅ จำได้ ${mastered} คำ · ⏰ ต้องทบทวน ${due} คำ</div>
+    </div>
+    ${session.length ? `
+    <div class="card vocab-session-card">
+      <div>
+        <div class="vocab-session-title">Session วันนี้</div>
+        <div class="vocab-session-sub">${session.length} คำ</div>
+      </div>
+      <button class="btn-start-vocab" onclick="startVocabSession()">เริ่มเรียน ▶</button>
+    </div>` : `
+    <div class="card" style="text-align:center;padding:24px">
+      <div style="font-size:36px;margin-bottom:8px">🎉</div>
+      <div style="color:var(--muted);font-size:14px">ไม่มีคำที่ต้องทบทวนวันนี้<br>กลับมาพรุ่งนี้!</div>
+    </div>`}
+    <div class="insights-section-title">💡 Tips</div>
+    <div class="tip-card">
+      <div class="tip-header">🎯 เรียน 5-10 คำ/วัน ดีกว่า 100 คำ/ครั้ง</div>
+      <div class="tip-detail">สมองจำได้ดีกว่าถ้าเรียนน้อยแต่สม่ำเสมอ ทำทุกวันสำคัญกว่าทำเยอะครั้งเดียว</div>
+    </div>
+    <div class="tip-card">
+      <div class="tip-header">🔁 การทบทวนคือหัวใจ</div>
+      <div class="tip-detail">เห็นคำซ้ำหลายครั้งในช่วงเวลาที่ห่างกันขึ้น สมองจะจำได้นานขึ้นเรื่อยๆ</div>
+    </div>`;
+}
+
+function startVocabSession() {
+  const state = loadVocabState();
+  vocabSession = _buildSession(state);
+  vocabIdx = 0;
+  // track session date for streak
+  state._sessions = state._sessions || [];
+  const today = getToday();
+  if (!state._sessions.includes(today)) state._sessions.push(today);
+  saveVocabState(state);
+  document.getElementById('vocab-overview').style.display = 'none';
+  document.getElementById('vocab-quiz').style.display    = 'block';
+  showVocabQ();
+}
+
+function showVocabQ() {
+  if (vocabIdx >= vocabSession.length) { endVocabSession(); return; }
+  const word    = vocabSession[vocabIdx];
+  const choices = [word, ..._wrongChoices(word)].sort(() => Math.random() - 0.5);
+
+  document.getElementById('quiz-content').innerHTML = `
+    <div class="quiz-header">
+      <button class="btn-quiz-back" onclick="renderVocab()">✕</button>
+      <div class="quiz-prog">${vocabIdx + 1} / ${vocabSession.length}</div>
+    </div>
+    <div class="quiz-card">
+      <div class="quiz-word">${word.en}</div>
+      <div class="quiz-example">"${word.ex}"</div>
+    </div>
+    <div class="quiz-hint">แปลว่าอะไร?</div>
+    <div class="quiz-choices">
+      ${choices.map(c => `
+        <button class="quiz-choice"
+          data-correct="${c.id === word.id}"
+          onclick="answerVocab(this,${word.id},${c.id === word.id})">
+          ${c.th}
+        </button>`).join('')}
+    </div>`;
+}
+
+function answerVocab(btn, wordId, isCorrect) {
+  document.querySelectorAll('.quiz-choice').forEach(b => b.disabled = true);
+  btn.classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) {
+    document.querySelectorAll('.quiz-choice[data-correct="true"]').forEach(b => b.classList.add('correct'));
+  }
+  const state = loadVocabState();
+  const ws = state[wordId] || { level: 0, nextReview: Date.now() };
+  ws.level = isCorrect ? Math.min(5, ws.level + 1) : Math.max(0, ws.level - 1);
+  ws.nextReview = Date.now() + (SRS_INTERVALS[ws.level] || 1) * 86400000;
+  state[wordId] = ws;
+  saveVocabState(state);
+  setTimeout(() => { vocabIdx++; showVocabQ(); }, isCorrect ? 700 : 1400);
+}
+
+function endVocabSession() {
+  document.getElementById('quiz-content').innerHTML = `
+    <div class="quiz-result">
+      <div style="font-size:64px">🎉</div>
+      <div class="result-title">จบแล้ว!</div>
+      <div class="result-sub">${vocabSession.length} คำ · เก่งมาก!</div>
+      <button class="btn-save" onclick="renderVocab()" style="margin-top:24px;width:100%">กลับหน้าหลัก</button>
+    </div>`;
+}
+
 // ─── EXPORT ──────────────────────────────────────────────────────────────────
 
 function exportTodayLog() {
@@ -1264,6 +1593,7 @@ async function init() {
   }
 
   // Drive sync on startup
+  if (!isAuthorized()) { setSyncStatus('connect'); return; }
   if (isAuthorized()) {
     try {
       const token = await requestToken(true);
@@ -1294,12 +1624,41 @@ async function init() {
 function setSyncStatus(status) {
   const el = document.getElementById('sync-status');
   if (!el) return;
-  if (status === 'synced') {
-    el.textContent = '☁️';
-    el.title = 'ซิงค์แล้ว';
-  } else {
-    el.textContent = '📴';
-    el.title = 'ออฟไลน์';
+  el.onclick = null;
+  el.style.cursor = 'default';
+  if (status === 'synced')  { el.textContent = '☁️';  el.title = 'ซิงค์แล้ว'; }
+  else if (status === 'offline') { el.textContent = '📴'; el.title = 'ออฟไลน์'; }
+  else if (status === 'connect') {
+    el.textContent = '🔗';
+    el.title = 'แตะเพื่อเชื่อมต่อ Google Drive';
+    el.style.cursor = 'pointer';
+    el.onclick = connectDrive;
+  }
+}
+
+async function connectDrive() {
+  setSyncStatus('offline');
+  try {
+    const token = await requestToken(false);
+    const driveData = await driveLoad(token);
+    if (driveData && typeof driveData === 'object') {
+      const today = getToday();
+      const todayLocal = data[today] ? JSON.parse(JSON.stringify(data[today])) : null;
+      data = { ...driveData };
+      if (todayLocal) {
+        const driveToday = driveData[today];
+        data[today] = (todayLocal.water || 0) >= (driveToday?.water || 0) ? todayLocal : (driveToday || todayLocal);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      renderHome();
+    } else {
+      await driveSave(token, data);
+    }
+    setSyncStatus('synced');
+    showToast('☁️ เชื่อมต่อ Drive สำเร็จ');
+  } catch {
+    setSyncStatus('connect');
+    showToast('เชื่อมต่อไม่สำเร็จ ลองอีกครั้ง');
   }
 }
 

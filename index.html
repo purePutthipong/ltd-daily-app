@@ -81,6 +81,17 @@
         <div id="insights-content"></div>
       </div>
 
+      <!-- VOCAB VIEW -->
+      <div id="view-vocab" class="view">
+        <div id="vocab-overview">
+          <div class="section-title">📚 English</div>
+          <div id="vocab-content"></div>
+        </div>
+        <div id="vocab-quiz" style="display:none">
+          <div id="quiz-content"></div>
+        </div>
+      </div>
+
       <!-- PORTFOLIO VIEW -->
       <div id="view-portfolio" class="view">
         <div id="portfolio-content">
@@ -95,6 +106,10 @@
       <button class="nav-btn active" id="nav-home" onclick="switchTab('home')">
         <span class="nav-icon">🏠</span>
         <span>วันนี้</span>
+      </button>
+      <button class="nav-btn" id="nav-vocab" onclick="switchTab('vocab')">
+        <span class="nav-icon">📚</span>
+        <span>EN</span>
       </button>
       <button class="nav-btn" id="nav-portfolio" onclick="switchTab('portfolio')">
         <span class="nav-icon">📈</span>
