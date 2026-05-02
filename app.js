@@ -2,7 +2,7 @@
 
 const STORAGE_KEY    = 'ltd-daily-v1';
 const MAX_WATER      = 8;
-const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // ← ใส่ Client ID จาก Google Cloud Console
+const GOOGLE_CLIENT_ID = '125209458743-96tf37mk9j35sjnb3e46pe41o0d34buc.apps.googleusercontent.com';
 
 const MOODS = { 1:'😴 ง่วง', 2:'😕 แย่', 3:'😐 ปกติ', 4:'🙂 ดี', 5:'😄 ดีมาก' };
 
