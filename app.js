@@ -174,7 +174,159 @@ const VOCAB_WORDS = [
   {id:157,en:'ready',    th:'พร้อม',          ex:'Are you ready?'},
   {id:158,en:'safe',     th:'ปลอดภัย',        ex:'Stay safe.'},
   {id:159,en:'sure',     th:'แน่ใจ',          ex:'Are you sure?'},
-  {id:160,en:'different',th:'แตกต่าง',        ex:'We are all different.'},
+  {id:160,en:'different', th:'แตกต่าง',        ex:'We are all different.',   tip:'differ = ต่างกัน → different = สิ่งที่ต่างกัน'},
+  // ── Colors ──
+  {id:161,en:'red',       th:'สีแดง',          ex:'I like red roses.'},
+  {id:162,en:'blue',      th:'สีน้ำเงิน',       ex:'The sky is blue.'},
+  {id:163,en:'green',     th:'สีเขียว',         ex:'Eat more green vegetables.'},
+  {id:164,en:'yellow',    th:'สีเหลือง',        ex:'The sun is yellow.'},
+  {id:165,en:'white',     th:'สีขาว',           ex:'Wear white clothes.'},
+  {id:166,en:'black',     th:'สีดำ',            ex:'I have a black bag.'},
+  {id:167,en:'orange',    th:'สีส้ม',           ex:'Eat an orange every day.'},
+  {id:168,en:'pink',      th:'สีชมพู',          ex:'She loves pink.'},
+  // ── Numbers ──
+  {id:169,en:'four',      th:'สี่',             ex:'I need four chairs.'},
+  {id:170,en:'five',      th:'ห้า',             ex:'Five minutes left.'},
+  {id:171,en:'six',       th:'หก',              ex:'Six days a week.'},
+  {id:172,en:'seven',     th:'เจ็ด',            ex:'Seven days in a week.'},
+  {id:173,en:'eight',     th:'แปด',             ex:'Eight glasses of water.'},
+  {id:174,en:'nine',      th:'เก้า',            ex:'Nine people came.'},
+  {id:175,en:'thousand',  th:'พัน',             ex:'One thousand baht.'},
+  // ── Family ──
+  {id:176,en:'father',    th:'พ่อ',             ex:'My father is kind.'},
+  {id:177,en:'mother',    th:'แม่',             ex:'I love my mother.'},
+  {id:178,en:'brother',   th:'พี่ชาย / น้องชาย',ex:'My brother is tall.'},
+  {id:179,en:'sister',    th:'พี่สาว / น้องสาว', ex:'My sister is smart.'},
+  {id:180,en:'son',       th:'ลูกชาย',          ex:'He has one son.'},
+  {id:181,en:'daughter',  th:'ลูกสาว',          ex:'She has a daughter.'},
+  {id:182,en:'husband',   th:'สามี',            ex:'Her husband is a doctor.'},
+  {id:183,en:'wife',      th:'ภรรยา',           ex:'My wife is a teacher.'},
+  // ── Places ──
+  {id:184,en:'hospital',  th:'โรงพยาบาล',       ex:'Go to the hospital.'},
+  {id:185,en:'bank',      th:'ธนาคาร',          ex:'I need to go to the bank.'},
+  {id:186,en:'market',    th:'ตลาด',            ex:'Buy food at the market.'},
+  {id:187,en:'restaurant',th:'ร้านอาหาร',       ex:'Let\'s eat at a restaurant.'},
+  {id:188,en:'hotel',     th:'โรงแรม',          ex:'Book a hotel room.'},
+  {id:189,en:'office',    th:'สำนักงาน',        ex:'I work in an office.'},
+  {id:190,en:'park',      th:'สวนสาธารณะ',      ex:'Walk in the park.'},
+  {id:191,en:'airport',   th:'สนามบิน',         ex:'Go to the airport.'},
+  {id:192,en:'university',th:'มหาวิทยาลัย',     ex:'I study at a university.'},
+  // ── Food ──
+  {id:193,en:'rice',      th:'ข้าว',            ex:'I eat rice every day.'},
+  {id:194,en:'meat',      th:'เนื้อ',           ex:'I like grilled meat.'},
+  {id:195,en:'fish',      th:'ปลา',             ex:'Eat more fish.'},
+  {id:196,en:'fruit',     th:'ผลไม้',           ex:'Eat fruit every day.'},
+  {id:197,en:'coffee',    th:'กาแฟ',            ex:'I drink coffee every morning.'},
+  {id:198,en:'sugar',     th:'น้ำตาล',          ex:'Less sugar is better.'},
+  // ── More Verbs ──
+  {id:199,en:'stand',     th:'ยืน',             ex:'Stand up please.'},
+  {id:200,en:'sit',       th:'นั่ง',            ex:'Sit down here.'},
+  {id:201,en:'smile',     th:'ยิ้ม',            ex:'Smile every day.'},
+  {id:202,en:'laugh',     th:'หัวเราะ',         ex:'Laugh more often.'},
+  {id:203,en:'cry',       th:'ร้องไห้',         ex:'Don\'t cry.'},
+  {id:204,en:'cook',      th:'ทำอาหาร',         ex:'I cook dinner.'},
+  {id:205,en:'drive',     th:'ขับรถ',           ex:'Drive carefully.'},
+  {id:206,en:'fix',       th:'ซ่อม / แก้ไข',   ex:'Fix the problem.'},
+  {id:207,en:'check',     th:'ตรวจสอบ',         ex:'Check your work.'},
+  {id:208,en:'choose',    th:'เลือก',           ex:'Choose wisely.'},
+  {id:209,en:'share',     th:'แบ่งปัน',         ex:'Share your food.'},
+  {id:210,en:'save',      th:'บันทึก / เซฟ',    ex:'Save your work.'},
+  {id:211,en:'send',      th:'ส่ง',             ex:'Send me the file.'},
+  {id:212,en:'receive',   th:'รับ',             ex:'Receive the package.'},
+  {id:213,en:'return',    th:'คืน / กลับ',      ex:'Return the book.'},
+  {id:214,en:'change',    th:'เปลี่ยน',         ex:'Change your habits.'},
+  {id:215,en:'keep',      th:'เก็บ / รักษา',    ex:'Keep it safe.'},
+  {id:216,en:'improve',   th:'พัฒนา / ดีขึ้น',  ex:'Improve every day.',    tip:'im + prove → พิสูจน์ว่าดีขึ้น'},
+  {id:217,en:'practice',  th:'ฝึกซ้อม',         ex:'Practice makes perfect.'},
+  {id:218,en:'understand',th:'เข้าใจ',          ex:'Do you understand?',    tip:'under + stand = ยืนอยู่ใต้ความรู้ → เข้าใจลึกซึ้ง'},
+  {id:219,en:'explain',   th:'อธิบาย',          ex:'Please explain this.'},
+  {id:220,en:'accept',    th:'ยอมรับ',          ex:'Accept the challenge.'},
+  {id:221,en:'decide',    th:'ตัดสินใจ',        ex:'Decide quickly.',        tip:'de + cide → ตัด (cide) ทิ้ง → ตัดสินใจ'},
+  {id:222,en:'achieve',   th:'บรรลุ / ทำสำเร็จ',ex:'Achieve your goals.'},
+  {id:223,en:'fail',      th:'ล้มเหลว',         ex:'It\'s okay to fail.'},
+  {id:224,en:'succeed',   th:'ประสบความสำเร็จ', ex:'Work hard to succeed.'},
+  {id:225,en:'believe',   th:'เชื่อ',           ex:'Believe in yourself.'},
+  // ── More Adjectives ──
+  {id:226,en:'long',      th:'ยาว',             ex:'A long road.'},
+  {id:227,en:'short',     th:'สั้น / เตี้ย',    ex:'A short break.'},
+  {id:228,en:'tall',      th:'สูง (คน)',         ex:'He is very tall.'},
+  {id:229,en:'interesting',th:'น่าสนใจ',        ex:'This is interesting.'},
+  {id:230,en:'boring',    th:'น่าเบื่อ',         ex:'Don\'t be boring.'},
+  {id:231,en:'correct',   th:'ถูกต้อง',          ex:'That answer is correct.'},
+  {id:232,en:'possible',  th:'เป็นไปได้',        ex:'Anything is possible.'},
+  {id:233,en:'difficult', th:'ยาก',             ex:'It\'s difficult but possible.'},
+  {id:234,en:'simple',    th:'ง่าย / เรียบง่าย', ex:'Keep it simple.'},
+  {id:235,en:'special',   th:'พิเศษ',           ex:'You are special.'},
+  {id:236,en:'normal',    th:'ปกติ',            ex:'This is normal.'},
+  {id:237,en:'perfect',   th:'สมบูรณ์แบบ',      ex:'Nothing is perfect.'},
+  {id:238,en:'enough',    th:'พอแล้ว',          ex:'That\'s enough.'},
+  {id:239,en:'useful',    th:'มีประโยชน์',       ex:'This app is useful.'},
+  {id:240,en:'popular',   th:'ได้รับความนิยม',   ex:'This song is popular.'},
+  // ── Engineering / Tech ──
+  {id:241,en:'robot',     th:'หุ่นยนต์',         ex:'Build a robot.'},
+  {id:242,en:'machine',   th:'เครื่องจักร',      ex:'The machine broke down.'},
+  {id:243,en:'computer',  th:'คอมพิวเตอร์',      ex:'Use a computer.'},
+  {id:244,en:'software',  th:'ซอฟต์แวร์',        ex:'Update your software.'},
+  {id:245,en:'battery',   th:'แบตเตอรี่',        ex:'Battery is low.'},
+  {id:246,en:'screen',    th:'หน้าจอ',           ex:'Clean your screen.'},
+  {id:247,en:'sensor',    th:'เซนเซอร์',         ex:'The sensor detected it.'},
+  {id:248,en:'signal',    th:'สัญญาณ',           ex:'No signal here.'},
+  {id:249,en:'connect',   th:'เชื่อมต่อ',         ex:'Connect to WiFi.'},
+  {id:250,en:'control',   th:'ควบคุม',           ex:'Control the robot.'},
+  // ── Academic ──
+  {id:251,en:'exam',      th:'สอบ',             ex:'Prepare for the exam.'},
+  {id:252,en:'score',     th:'คะแนน',           ex:'Get a good score.'},
+  {id:253,en:'project',   th:'โปรเจกต์',         ex:'Work on your project.'},
+  {id:254,en:'research',  th:'วิจัย',            ex:'Do your research.'},
+  {id:255,en:'design',    th:'ออกแบบ',           ex:'Design a system.'},
+  {id:256,en:'build',     th:'สร้าง / บิ้วด์',   ex:'Build something great.'},
+  {id:257,en:'test',      th:'ทดสอบ',            ex:'Test the system.'},
+  {id:258,en:'result',    th:'ผลลัพธ์',          ex:'Check the result.'},
+  {id:259,en:'problem',   th:'ปัญหา',            ex:'Solve the problem.'},
+  {id:260,en:'solution',  th:'วิธีแก้ปัญหา',     ex:'Find a solution.'},
+  // ── Finance ──
+  {id:261,en:'invest',    th:'ลงทุน',            ex:'Invest wisely.'},
+  {id:262,en:'profit',    th:'กำไร',             ex:'Make a profit.'},
+  {id:263,en:'loss',      th:'ขาดทุน',           ex:'Cut your loss.'},
+  {id:264,en:'stock',     th:'หุ้น',             ex:'Buy the stock.'},
+  {id:265,en:'portfolio', th:'พอร์ตการลงทุน',    ex:'Build your portfolio.'},
+  {id:266,en:'market',    th:'ตลาด',             ex:'The market is up today.'},
+  {id:267,en:'price',     th:'ราคา',             ex:'The price dropped.'},
+  {id:268,en:'cost',      th:'ต้นทุน',           ex:'Cut the cost.'},
+  {id:269,en:'growth',    th:'การเติบโต',        ex:'Strong growth this year.'},
+  {id:270,en:'risk',      th:'ความเสี่ยง',       ex:'Manage your risk.'},
+  // ── Common expressions ──
+  {id:271,en:'of course', th:'แน่นอน',           ex:'Of course I can help.'},
+  {id:272,en:'no problem',th:'ไม่มีปัญหา',       ex:'No problem at all.'},
+  {id:273,en:'I see',     th:'เข้าใจแล้ว',       ex:'I see what you mean.'},
+  {id:274,en:'really',    th:'จริงๆ / จริงๆ เหรอ',ex:'Really? That\'s great!'},
+  {id:275,en:'maybe',     th:'อาจจะ',            ex:'Maybe tomorrow.'},
+  {id:276,en:'almost',    th:'เกือบ',            ex:'Almost done!'},
+  {id:277,en:'already',   th:'แล้ว',             ex:'I already ate.'},
+  {id:278,en:'still',     th:'ยังอยู่ / ยังคง',  ex:'I\'m still learning.'},
+  {id:279,en:'again',     th:'อีกครั้ง',         ex:'Try again.'},
+  {id:280,en:'together',  th:'ด้วยกัน',          ex:'We do it together.'},
+  // ── Hard words with tips ──
+  {id:281,en:'effort',    th:'ความพยายาม',       ex:'Put in the effort.',    tip:'ef + fort → fort = ป้อมปราการ → ต้องใช้กำลังเหมือนบุกป้อม'},
+  {id:282,en:'experience',th:'ประสบการณ์',       ex:'Learn from experience.', tip:'ex + perience → สิ่งที่ผ่านออกมา (ex = ออก) จากการลอง'},
+  {id:283,en:'opportunity',th:'โอกาส',           ex:'Don\'t miss this opportunity.', tip:'oppor + tunity → นึกถึง "อ๊อปจูน" โอกาสที่มาพร้อมจังหวะ'},
+  {id:284,en:'challenge', th:'ความท้าทาย',       ex:'Accept the challenge.',  tip:'นึกถึง "แชลเลนจ์" เหมือนคำที่ไทยทับศัพท์อยู่แล้ว'},
+  {id:285,en:'confidence',th:'ความมั่นใจ',       ex:'Have confidence in yourself.', tip:'con + fidence → fide = ความเชื่อมั่น (confident = เชื่อมั่นในตัวเอง)'},
+  {id:286,en:'responsible',th:'รับผิดชอบ',       ex:'Be responsible.',        tip:'response + ible → ตอบสนอง (response) ได้ = รับผิดชอบ'},
+  {id:287,en:'concentrate',th:'มีสมาธิ',         ex:'Concentrate on your work.', tip:'con + centre → ทุกอย่างอยู่ที่ศูนย์กลาง (centre) = มีสมาธิ'},
+  {id:288,en:'communicate',th:'สื่อสาร',         ex:'Communicate clearly.',   tip:'communi + cate → community = ชุมชน → การสื่อสารกัน'},
+  {id:289,en:'organize',  th:'จัดระเบียบ',       ex:'Organize your time.',    tip:'organ = อวัยวะ → จัดให้ทุกส่วนทำงานร่วมกันดี'},
+  {id:290,en:'analyze',   th:'วิเคราะห์',        ex:'Analyze the data.',      tip:'ana + lyze → แยก (lyze) ออกมาดูทีละส่วน'},
+  {id:291,en:'priority',  th:'สิ่งที่สำคัญที่สุด',ex:'Set your priority.',    tip:'prior = ก่อนหน้า → สิ่งที่ต้องทำก่อน = ความสำคัญ'},
+  {id:292,en:'discipline',th:'วินัย',            ex:'Discipline is the key.',  tip:'disci + pline → นึกถึง "ดิสซิพลิน" ฟังดูเหมือนคนที่มีวินัยเดินตรง'},
+  {id:293,en:'consistent',th:'สม่ำเสมอ',         ex:'Be consistent every day.',tip:'con + sist + ent → ยืนหยัด (sist) อยู่กับมัน = ทำสม่ำเสมอ'},
+  {id:294,en:'efficient', th:'มีประสิทธิภาพ',    ex:'Work efficiently.',       tip:'effici + ent → effect = ผล → ได้ผลดีโดยใช้ทรัพยากรน้อย'},
+  {id:295,en:'strategy',  th:'กลยุทธ์',          ex:'Plan your strategy.',    tip:'strateg + y → "สตราทีจี้" ไทยทับศัพท์ว่า strategy อยู่แล้ว'},
+  {id:296,en:'progress',  th:'ความก้าวหน้า',     ex:'Track your progress.',   tip:'pro + gress → gress = เดิน, pro = ไปข้างหน้า → เดินหน้า'},
+  {id:297,en:'routine',   th:'กิจวัตร',          ex:'Build a morning routine.',tip:'route + ine → เส้นทาง (route) ที่ทำซ้ำทุกวัน'},
+  {id:298,en:'motivation',th:'แรงจูงใจ',         ex:'Find your motivation.',  tip:'motive = เหตุผล → motivation = สิ่งที่ขับเคลื่อนให้ลงมือทำ'},
+  {id:299,en:'patience',  th:'ความอดทน',         ex:'Have patience.',         tip:'patient = คนไข้ที่รอหมอ → ต้องอดทนรอ'},
+  {id:300,en:'grateful',  th:'รู้สึกขอบคุณ',     ex:'Be grateful every day.', tip:'grate + ful → เต็มไปด้วย (ful) ความรู้สึกขอบคุณ'},
 ];
 const GOOGLE_CLIENT_ID = '125209458743-96tf37mk9j35sjnb3e46pe41o0d34buc.apps.googleusercontent.com';
 
@@ -1509,13 +1661,50 @@ function answerVocab(btn, wordId, isCorrect) {
   if (!isCorrect) {
     document.querySelectorAll('.quiz-choice[data-correct="true"]').forEach(b => b.classList.add('correct'));
   }
+
+  // Update SRS
   const state = loadVocabState();
   const ws = state[wordId] || { level: 0, nextReview: Date.now() };
   ws.level = isCorrect ? Math.min(5, ws.level + 1) : Math.max(0, ws.level - 1);
   ws.nextReview = Date.now() + (SRS_INTERVALS[ws.level] || 1) * 86400000;
   state[wordId] = ws;
   saveVocabState(state);
-  setTimeout(() => { vocabIdx++; showVocabQ(); }, isCorrect ? 700 : 1400);
+
+  if (isCorrect) {
+    setTimeout(() => { vocabIdx++; showVocabQ(); }, 700);
+  } else {
+    // Show tip + action buttons
+    const word = VOCAB_WORDS.find(w => w.id === wordId);
+    const tipHtml = word?.tip
+      ? `<div class="quiz-tip">💡 <strong>เทคนิคจำ:</strong> ${word.tip}</div>`
+      : '';
+    setTimeout(() => {
+      const footer = document.createElement('div');
+      footer.className = 'quiz-wrong-footer';
+      footer.innerHTML = `
+        ${tipHtml}
+        <div class="quiz-action-row">
+          <button class="btn-hard" onclick="markHard(${wordId})">🔴 ยากมาก ทบทวนใหม่</button>
+          <button class="btn-next-q" onclick="nextVocabQ()">ต่อไป →</button>
+        </div>`;
+      document.getElementById('quiz-content').appendChild(footer);
+    }, 500);
+  }
+}
+
+function markHard(wordId) {
+  const state = loadVocabState();
+  const ws = state[wordId] || { level: 0, nextReview: Date.now() };
+  ws.level = 0;
+  ws.nextReview = Date.now(); // due immediately next session
+  state[wordId] = ws;
+  saveVocabState(state);
+  nextVocabQ();
+}
+
+function nextVocabQ() {
+  vocabIdx++;
+  showVocabQ();
 }
 
 function endVocabSession() {
@@ -1616,7 +1805,7 @@ async function init() {
       }
       setSyncStatus('synced');
     } catch {
-      setSyncStatus('offline');
+      setSyncStatus('connect'); // auth failed — show connect button so user can retry
     }
   }
 }
